@@ -23,30 +23,6 @@ cloudinary.config(
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-def create_tables():
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY, 
-            username VARCHAR(50) UNIQUE, 
-            password_hash VARCHAR(200)
-        );
-        CREATE TABLE IF NOT EXISTS videos (
-            id SERIAL PRIMARY KEY, 
-            user_id INT REFERENCES users(id), 
-            video_url TEXT, 
-            caption TEXT, 
-            created_at TIMESTAMP DEFAULT NOW()
-        );
-    """)
-    conn.commit()
-    cur.close()
-    conn.close()
-    print("Tables created/checked ✅")
-
-create_tables()
-
 ADMIN_USERNAME = "MachoDev"
 ALLOWED_EXT = {'mp4', 'mov', 'avi', 'jpg', 'jpeg', 'png', 'gif'}
 FILTERS = ['None', 'Grayscale', 'Sepia', 'Blur', 'Bright']
@@ -64,7 +40,7 @@ def init_db():
     conn = get_db()
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users(
-        id SERIAL PRIMARY KEY, username TEXT UNIQUE, password TEXT, email TEXT UNIQUE,
+        id SERIAL PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT, email TEXT UNIQUE,
         dob TEXT, region TEXT, bio TEXT DEFAULT '', profile_pic TEXT DEFAULT 'https://res.cloudinary.com/demo/image/upload/v131415/default_avatar.png',
         banned INTEGER DEFAULT 0, verified INTEGER DEFAULT 0, pro_mode INTEGER DEFAULT 0,
         followers INTEGER DEFAULT 0, total_likes INTEGER DEFAULT 0, is_admin BOOLEAN DEFAULT FALSE
@@ -99,7 +75,7 @@ def signup():
     if request.method == 'POST':
         conn = get_db(); c = conn.cursor()
         try:
-            c.execute("INSERT INTO users (username,password,email,dob,region) VALUES (%s,%s,%s,%s,%s)",
+            c.execute("INSERT INTO users (username,password_hash,email,dob,region) VALUES (%s,%s,%s,%s,%s)",
                 (request.form['username'], generate_password_hash(request.form['password']), request.form['email'], request.form['dob'], request.form['region']))
             conn.commit()
         except: flash('Username or Email exists'); conn.close(); return redirect('/signup')
@@ -112,7 +88,7 @@ def login():
         conn = get_db(); c = conn.cursor()
         c.execute("SELECT * FROM users WHERE username=%s", (request.form['username'],))
         user = c.fetchone(); conn.close()
-        if user and check_password_hash(user['password'], request.form['password']):
+        if user and check_password_hash(user['password_hash'], request.form['password']):
             if user['banned']: flash('Banned'); return redirect('/login')
             session['username'] = user['username']
             session['is_admin'] = user['is_admin']
