@@ -387,9 +387,16 @@ def view_story(story_id):
     c.execute("SELECT s.*, u.profile_pic FROM stories s JOIN users u ON s.username=u.username WHERE s.id=%s", (story_id,))
     story = c.fetchone()
     conn.close()
-    return render_template('view_story.html', story=story)
-  @app.route('/profile/<username>')
-def profile(username):
+     return render_template('view_story.html', story=story)
+ 
+ @app.route('/profile/<username>')
+ def profile(username):
+     user = db.users.find_one({"username": username})
+     if not user:
+         return "User not found", 404
+     
+     videos = list(db.videos.find({"uploader": username}).sort("_id", -1))
+     return render_template('profile.html', user=user, videos=videos)
     user = db.users.find_one({"username": username})
     if not user:
         return "User not found", 404
