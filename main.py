@@ -400,7 +400,8 @@ def upload_story():
         file = request.files['story']
         upload_result = cloudinary.uploader.upload(file.stream, resource_type="video")
         conn = get_db(); c = conn.cursor()
-        c.execute("INSERT INTO stories (username, video, timestamp) VALUES (%s,%s,%s)", (current_user(), upload_result['secure_url'], time.time()))
+        timestamp = int(time.time())
+c.execute("INSERT INTO stories (username, video, timestamp) VALUES (%s,%s,%s)", (session['username'], upload_result['secure_url'], timestamp))
         conn.commit(); conn.close()
         return redirect('/')
     return render_template('upload_story.html')
@@ -416,11 +417,11 @@ def view_story(story_id):
     
 @app.route('/make-me-ceo-12345')
 def make_me_ceo():
-    user = User.query.filter_by(username='MachoDev').first()
-    if user:
-        user.is_admin = True
-        db.session.commit()
-        return "CEO Status: ACTIVATED. Delete this route now!"
-    return "User not found"
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("UPDATE users SET is_admin = TRUE WHERE username = %s", ('MachoDev',))
+    conn.commit()
+    conn.close()
+    return "CEO Status: ACTIVATED for MachoDev. DELETE THIS ROUTE NOW!"
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
