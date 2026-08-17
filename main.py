@@ -67,7 +67,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-@app.before_first_request
+@app.before_request
 def startup():
     init_db()
     print("DB INITIALIZED SUCCESSFULLY")
