@@ -148,6 +148,21 @@ def index():
     conn.close()
     return render_template('index.html', videos=videos, stories=stories, current_user=current_user(), following=following, tab='foryou')
 
+# ========== PROFILE ==========
+@app.route('/profile/<username>')
+def profile(username):
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username=%s", (username,))
+    user = c.fetchone()
+    if not user:
+        conn.close()
+        return "User not found", 404
+    
+    c.execute("SELECT * FROM videos WHERE username=%s ORDER BY id DESC", (username,))
+    videos = c.fetchall()
+    conn.close()
+    return render_template('profile.html', user=user, videos=videos)
+
 # ========== FOLLOW ==========
 @app.route('/follow/<username>')
 def follow(username):
@@ -387,22 +402,7 @@ def view_story(story_id):
     c.execute("SELECT s.*, u.profile_pic FROM stories s JOIN users u ON s.username=u.username WHERE s.id=%s", (story_id,))
     story = c.fetchone()
     conn.close()
-     return render_template('view_story.html', story=story)
- 
- @app.route('/profile/<username>')
- def profile(username):
-     user = db.users.find_one({"username": username})
-     if not user:
-         return "User not found", 404
-     
-     videos = list(db.videos.find({"uploader": username}).sort("_id", -1))
-     return render_template('profile.html', user=user, videos=videos)
-    user = db.users.find_one({"username": username})
-    if not user:
-        return "User not found", 404
-    
-    videos = list(db.videos.find({"uploader": username}).sort("_id", -1))
-    return render_template('profile.html', user=user, videos=videos)
+    return render_template('view_story.html', story=story)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
