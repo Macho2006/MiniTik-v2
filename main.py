@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 import os
 import time
-from datetime import datetime
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
@@ -158,7 +157,7 @@ def comments(video_id):
     conn.close()
     return render_template('comments.html', comments=comments, video_id=video_id)
 
-# ========== UPLOAD WITH CLOUDINARY ==========
+# ========== UPLOAD WITH CLOUDINARY - FIXED ==========
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     if 'username' not in session: return redirect('/login')
@@ -168,7 +167,7 @@ def upload():
         filter_type = request.form['filter']
         
         if file and allowed_file(file.filename):
-            # FIX: Upload using file.stream so Render doesn't crash
+            # Upload using file.stream so Render doesn't crash
             upload_result = cloudinary.uploader.upload(
                 file.stream, 
                 resource_type="auto",
@@ -178,16 +177,13 @@ def upload():
             ext = file.filename.rsplit('.', 1)[1].lower()
             file_type = 'image' if ext in ['jpg', 'jpeg', 'png', 'gif'] else 'video'
 
-            conn = get_db(); c = conn.cursor()
-            c.execute("INSERT INTO videos (username, video, caption, timestamp, type) VALUES (?,?,?)",
-                      (session['username'], file_url, caption, datetime.now(), file_type))
+            conn = get_db()
+            c = conn.cursor()
+            # 6 columns = 6 %s. Use time.time() because timestamp is REAL
+            c.execute("INSERT INTO videos (username, video, caption, timestamp, type, filter) VALUES (%s,%s,%s,%s,%s,%s)",
+                      (current_user(), file_url, caption, time.time(), file_type, filter_type))
             conn.commit()
             conn.close()
-            return redirect('/')
-    return render_template('upload.html')
-            c.execute("INSERT INTO videos (username, video, caption, timestamp, type, filter) VALUES (%s,%s,%s,%s,%s,%s)",
-                (current_user(), file_url, caption, time.time(), file_type, filter_type))
-            conn.commit(); conn.close()
             return redirect('/')
     return render_template('upload.html', filters=FILTERS)
 
@@ -289,7 +285,7 @@ def delete_post(post_id):
         return "Post not found"
     
     # Allow if user is admin OR if user owns the post
-    if not session.get('is_admin') and video['username'] != current_user():
+    if not session.get('is_admin') and video['username']!= current_user():
         conn.close()
         return "No access bro"
     
