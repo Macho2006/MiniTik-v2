@@ -10,6 +10,7 @@ from flask_session import Session
 import cloudinary, cloudinary.uploader
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024 # 100MB max
 app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
@@ -165,13 +166,25 @@ def upload():
         file = request.files['file']
         caption = request.form['caption']
         filter_type = request.form['filter']
+        
         if file and allowed_file(file.filename):
-            upload_result = cloudinary.uploader.upload(file, resource_type="auto")
+            # FIX: Upload using file.stream so Render doesn't crash
+            upload_result = cloudinary.uploader.upload(
+                file.stream, 
+                resource_type="auto",
+                chunk_size=6000000 # 6MB chunks for big videos
+            )
             file_url = upload_result['secure_url']
             ext = file.filename.rsplit('.', 1)[1].lower()
-            file_type = 'image' if ext in ['jpg','jpeg','png','gif'] else 'video'
+            file_type = 'image' if ext in ['jpg', 'jpeg', 'png', 'gif'] else 'video'
 
             conn = get_db(); c = conn.cursor()
+            c.execute("INSERT INTO videos (username, video, caption, timestamp, type) VALUES (?,?,?)",
+                      (session['username'], file_url, caption, datetime.now(), file_type))
+            conn.commit()
+            conn.close()
+            return redirect('/')
+    return render_template('upload.html')
             c.execute("INSERT INTO videos (username, video, caption, timestamp, type, filter) VALUES (%s,%s,%s,%s,%s,%s)",
                 (current_user(), file_url, caption, time.time(), file_type, filter_type))
             conn.commit(); conn.close()
