@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 import os
 import time
+import datetime
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
@@ -19,7 +20,6 @@ cloudinary.config(
   api_key = os.environ.get('CLOUD_API_KEY'),
   api_secret = os.environ.get('CLOUD_API_SECRET')
 )
-import psycopg2
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
@@ -63,7 +63,6 @@ def get_db():
 def init_db():
     conn = get_db()
     c = conn.cursor()
-    # Added profile_pic + notifications table
     c.execute('''CREATE TABLE IF NOT EXISTS users(
         id SERIAL PRIMARY KEY, username TEXT UNIQUE, password TEXT, email TEXT UNIQUE,
         dob TEXT, region TEXT, bio TEXT DEFAULT '', profile_pic TEXT DEFAULT 'https://res.cloudinary.com/demo/image/upload/v131415/default_avatar.png',
@@ -147,10 +146,22 @@ def settings():
 def index():
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
-    c.execute("SELECT v.*, u.profile_pic, u.verified FROM videos v JOIN users u ON v.username=u.username ORDER BY timestamp DESC"); videos = c.fetchall()
-    c.execute("SELECT following FROM following WHERE follower=%s", (current_user(),)); following = [r['following'] for r in c.fetchall()]
+    
+    # 1. Get videos
+    c.execute("SELECT v.*, u.profile_pic, u.verified FROM videos v JOIN users u ON v.username=u.username ORDER BY timestamp DESC")
+    videos = c.fetchall()
+    
+    # 2. Get stories from last 24 hours
+    twenty_four_hours_ago = time.time() - (24 * 60 * 60)
+    c.execute("SELECT s.*, u.profile_pic FROM stories s JOIN users u ON s.username=u.username WHERE s.timestamp > %s GROUP BY s.username ORDER BY s.timestamp DESC", (twenty_four_hours_ago,))
+    stories = c.fetchall()
+    
+    # 3. Get following list
+    c.execute("SELECT following FROM following WHERE follower=%s", (current_user(),))
+    following = [r['following'] for r in c.fetchall()]
+    
     conn.close()
-    return render_template('index.html', videos=videos, current_user=current_user(), following=following, tab='foryou')
+    return render_template('index.html', videos=videos, stories=stories, current_user=current_user(), following=following, tab='foryou')
 
 # ========== FOLLOW ==========
 @app.route('/follow/<username>')
@@ -193,11 +204,10 @@ def upload():
         filter_type = request.form['filter']
         
         if file and allowed_file(file.filename):
-            # Upload using file.stream so Render doesn't crash
             upload_result = cloudinary.uploader.upload(
                 file.stream, 
                 resource_type="auto",
-                chunk_size=6000000 # 6MB chunks for big videos
+                chunk_size=6000000
             )
             file_url = upload_result['secure_url']
             ext = file.filename.rsplit('.', 1)[1].lower()
@@ -205,7 +215,6 @@ def upload():
 
             conn = get_db()
             c = conn.cursor()
-            # 6 columns = 6 %s. Use time.time() because timestamp is REAL
             c.execute("INSERT INTO videos (username, video, caption, timestamp, type, filter) VALUES (%s,%s,%s,%s,%s,%s)",
                       (current_user(), file_url, caption, time.time(), file_type, filter_type))
             conn.commit()
@@ -237,11 +246,10 @@ def notifications():
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
     c.execute("UPDATE notifications SET is_read=1 WHERE username=%s", (current_user(),))
-    c.execute("SELECT n.*, u.profile_pic FROM notifications n JOIN users u ON n.actor=u.username WHERE n.username=%s ORDER BY timestamp DESC", (current_user(),)); notifs = c.fetchall()
-=======
-    
+    c.execute("SELECT n.*, u.profile_pic FROM notifications n JOIN users u ON n.actor=u.username WHERE n.username=%s ORDER BY timestamp DESC", (current_user(),))
+    notifs = c.fetchall()
     conn.close()
-    return render_template('notifications.html', notifications=notifications_list, current_user=current_user())
+    return render_template('notifications.html', notifications=notifs, current_user=current_user())
 
 # ========== DM INBOX ==========
 @app.route('/dm')
@@ -250,7 +258,8 @@ def dm_inbox():
     conn = get_db(); c = conn.cursor()
     c.execute("""SELECT DISTINCT receiver as user FROM messages WHERE sender=%s
                  UNION
-                 SELECT DISTINCT sender as user FROM messages WHERE receiver=%s""", (current_user(), current_user())); chats = c.fetchall()
+                 SELECT DISTINCT sender as user FROM messages WHERE receiver=%s""", (current_user(), current_user()))
+    chats = c.fetchall()
     conn.close()
     return render_template('dm_inbox.html', chats=chats, current_user=current_user())
 
@@ -261,9 +270,11 @@ def dm_chat(username):
     conn = get_db(); c = conn.cursor()
     if request.method == 'POST':
         c.execute("INSERT INTO messages (sender, receiver, message, timestamp) VALUES (%s,%s,%s,%s)",
-            (current_user(), username, request.form['message'], time.time())); conn.commit()
+            (current_user(), username, request.form['message'], time.time()))
+        conn.commit()
     c.execute("""SELECT * FROM messages WHERE (sender=%s AND receiver=%s) OR (sender=%s AND receiver=%s) ORDER BY timestamp ASC""",
-        (current_user(), username, username, current_user())); messages = c.fetchall()
+        (current_user(), username, username, current_user()))
+    messages = c.fetchall()
     conn.close()
     return render_template('dm_chat.html', messages=messages, chat_with=username, current_user=current_user())
 
@@ -272,8 +283,10 @@ def dm_chat(username):
 def friends():
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username!=%s", (current_user(),)); users = c.fetchall()
-    c.execute("SELECT following FROM following WHERE follower=%s", (current_user(),)); following = [r['following'] for r in c.fetchall()]
+    c.execute("SELECT * FROM users WHERE username!=%s", (current_user(),))
+    users = c.fetchall()
+    c.execute("SELECT following FROM following WHERE follower=%s", (current_user(),))
+    following = [r['following'] for r in c.fetchall()]
     conn.close()
     return render_template('friends.html', users=users, following=following, current_user=current_user())
 
@@ -283,9 +296,12 @@ def search():
     if 'username' not in session: return redirect('/login')
     query = request.args.get('q', '').strip()
     conn = get_db(); c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username LIKE %s OR bio LIKE %s", (f'%{query}%', f'%{query}%')); users = c.fetchall()
-    c.execute("SELECT * FROM videos WHERE caption LIKE %s ORDER BY timestamp DESC", (f'%{query}%',)); videos = c.fetchall()
-    c.execute("SELECT following FROM following WHERE follower=%s", (current_user(),)); following = [r['following'] for r in c.fetchall()]
+    c.execute("SELECT * FROM users WHERE username LIKE %s OR bio LIKE %s", (f'%{query}%', f'%{query}%'))
+    users = c.fetchall()
+    c.execute("SELECT * FROM videos WHERE caption LIKE %s ORDER BY timestamp DESC", (f'%{query}%',))
+    videos = c.fetchall()
+    c.execute("SELECT following FROM following WHERE follower=%s", (current_user(),))
+    following = [r['following'] for r in c.fetchall()]
     conn.close()
     return render_template('search_results.html', query=query, users=users, videos=videos, current_user=current_user(), following=following)
 
@@ -294,26 +310,18 @@ def search():
 def delete_post(post_id):
     if 'username' not in session: 
         return redirect('/login')
-    
     conn = get_db(); c = conn.cursor()
     c.execute("SELECT username FROM videos WHERE id=%s", (post_id,))
     video = c.fetchone()
-    
     if not video:
         conn.close()
         return "Post not found"
-    
-    # Allow if user is admin OR if user owns the post
     if not session.get('is_admin') and video['username']!= current_user():
         conn.close()
         return "No access bro"
-    
     c.execute("DELETE FROM videos WHERE id=%s", (post_id,))
->>>>>>> e6285e62c2c93e54b25aedd7eebcab04739ab8ca
     conn.commit(); conn.close()
-    return render_template('notifications.html', notifications=notifs, current_user=current_user())
-
-#... KEEP ALL YOUR OTHER ROUTES: dm, friends, search, profile, trending, following_feed...
+    return redirect(request.referrer or '/')
 
 # ========== ADMIN PANEL ==========
 @app.route('/admin')
@@ -367,42 +375,46 @@ def admin_delete_video(video_id):
     c.execute("DELETE FROM videos WHERE id=%s", (video_id,))
     conn.commit(); conn.close()
     return redirect('/admin')
-    # ========== STORIES ==========
+
+# ========== STORIES ==========
 @app.route('/stories')
 def stories():
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
-    # Delete stories older than 24 hours
-    c.execute("DELETE FROM stories WHERE timestamp < %s", (time.time() - 86400,))
-    # Get stories from people you follow + yourself
-    c.execute("SELECT following FROM following WHERE follower=%s", (current_user(),)); following = [r['following'] for r in c.fetchall()]
+    
+    # 1. Delete stories older than 24 hours
+    twenty_four_hours_ago = time.time() - (24 * 60 * 60)
+    c.execute("DELETE FROM stories WHERE timestamp < %s", (twenty_four_hours_ago,))
+    
+    # 2. Get people you follow + yourself
+    c.execute("SELECT following FROM following WHERE follower=%s", (current_user(),))
+    following = [row['following'] for row in c.fetchall()]
     following.append(current_user())
+    
+    # 3. Get latest story from each person
     placeholders = ','.join(['%s'] * len(following))
-    c.execute(f"SELECT s.*, u.profile_pic FROM stories s JOIN users u ON s.username=u.username WHERE s.username IN ({placeholders}) ORDER BY timestamp ASC", tuple(following))
+    c.execute(f"SELECT s.*, u.profile_pic FROM stories s JOIN users u ON s.username=u.username WHERE s.username IN ({placeholders}) ORDER BY s.timestamp DESC", tuple(following))
     stories = c.fetchall()
     conn.commit(); conn.close()
     return render_template('stories.html', stories=stories, current_user=current_user())
 
-@app.route('/add_story', methods=['GET', 'POST'])
-def add_story():
+@app.route('/story/upload', methods=['GET', 'POST'])
+def upload_story():
     if 'username' not in session: return redirect('/login')
     if request.method == 'POST':
-        file = request.files['file']
-        if file and allowed_file(file.filename):
-            upload_result = cloudinary.uploader.upload(file, resource_type="auto", folder="minitik_stories")
-            story_url = upload_result['secure_url']
-            conn = get_db(); c = conn.cursor()
-            c.execute("INSERT INTO stories (username, video, timestamp) VALUES (%s,%s,%s)",
-                (current_user(), story_url, time.time()))
-            conn.commit(); conn.close()
-            return redirect('/stories')
-    return render_template('add_story.html')
+        file = request.files['story']
+        upload_result = cloudinary.uploader.upload(file.stream, resource_type="video")
+        conn = get_db(); c = conn.cursor()
+        c.execute("INSERT INTO stories (username, video, timestamp) VALUES (%s,%s,%s)", (current_user(), upload_result['secure_url'], time.time()))
+        conn.commit(); conn.close()
+        return redirect('/')
+    return render_template('upload_story.html')
 
-@app.route('/view_story/<int:story_id>')
+@app.route('/story/<int:story_id>')
 def view_story(story_id):
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
-    c.execute("SELECT s.*, u.profile_pic, u.username FROM stories s JOIN users u ON s.username=u.username WHERE s.id=%s", (story_id,))
+    c.execute("SELECT s.*, u.profile_pic FROM stories s JOIN users u ON s.username=u.username WHERE s.id=%s", (story_id,))
     story = c.fetchone()
     conn.close()
     return render_template('view_story.html', story=story)
