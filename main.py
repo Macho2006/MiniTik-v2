@@ -150,6 +150,21 @@ def index():
     conn.close()
     return render_template('index.html', videos=videos, stories=stories, current_user=current_user(), following=following, tab='foryou')
 
+# ========== PROFILE ==========
+@app.route('/profile/<username>')
+def profile(username):
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username=%s", (username,))
+    user = c.fetchone()
+    if not user:
+        conn.close()
+        return "User not found", 404
+    
+    c.execute("SELECT * FROM videos WHERE username=%s ORDER BY id DESC", (username,))
+    videos = c.fetchall()
+    conn.close()
+    return render_template('profile.html', user=user, videos=videos)
+
 # ========== FOLLOW ==========
 @app.route('/follow/<username>')
 def follow(username):
