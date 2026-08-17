@@ -67,10 +67,12 @@ def init_db():
     conn.commit()
     conn.close()
 
-@app.before_first_request
+@app.before_request
 def startup():
-    init_db()
-    print("DB INITIALIZED SUCCESSFULLY")
+    if not hasattr(app, 'db_initialized'):
+        init_db()
+        app.db_initialized = True
+        print("DB INITIALIZED SUCCESSFULLY")
 
 def current_user(): return session.get('username')
 
