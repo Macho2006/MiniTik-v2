@@ -39,19 +39,17 @@ def get_db():
 def init_db():
     conn = get_db()
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users(
+    
+    # DROP AND RECREATE USERS TABLE TO FIX CORRUPTION
+    c.execute("DROP TABLE IF EXISTS users CASCADE")
+    c.execute('''CREATE TABLE users(
         id SERIAL PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT, email TEXT UNIQUE,
         dob TEXT, region TEXT, bio TEXT DEFAULT '', profile_pic TEXT DEFAULT 'https://res.cloudinary.com/demo/image/upload/v131415/default_avatar.png',
         banned INTEGER DEFAULT 0, verified INTEGER DEFAULT 0, pro_mode INTEGER DEFAULT 0,
         followers INTEGER DEFAULT 0, total_likes INTEGER DEFAULT 0, is_admin BOOLEAN DEFAULT FALSE
     )''')
     
-    # MIGRATION FIX: Rename old 'password' column to 'password_hash' if it exists
-    try:
-        c.execute("ALTER TABLE users RENAME COLUMN password TO password_hash")
-    except:
-        pass # Already renamed or doesn't exist
-    
+    # Create other tables
     c.execute('''CREATE TABLE IF NOT EXISTS videos(id SERIAL PRIMARY KEY, username TEXT, video TEXT, caption TEXT, likes INTEGER DEFAULT 0, timestamp REAL, type TEXT DEFAULT 'video', filter TEXT DEFAULT 'None')''')
     c.execute('''CREATE TABLE IF NOT EXISTS likes(video_id INTEGER, username TEXT, PRIMARY KEY(video_id, username))''')
     c.execute('''CREATE TABLE IF NOT EXISTS following(follower TEXT, following TEXT, PRIMARY KEY(follower, following))''')
@@ -64,7 +62,6 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS friends(user1 TEXT, user2 TEXT, PRIMARY KEY(user1, user2))''')
     conn.commit()
     conn.close()
-
 init_db()
 
 def current_user(): return session.get('username')
