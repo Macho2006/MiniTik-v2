@@ -388,6 +388,14 @@ def view_story(story_id):
     story = c.fetchone()
     conn.close()
     return render_template('view_story.html', story=story)
+  @app.route('/profile/<username>')
+def profile(username):
+    user = db.users.find_one({"username": username})
+    if not user:
+        return "User not found", 404
+    
+    videos = list(db.videos.find({"uploader": username}).sort("_id", -1))
+    return render_template('profile.html', user=user, videos=videos)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
