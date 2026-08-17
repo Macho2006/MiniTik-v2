@@ -1,16 +1,15 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 import os
 import time
-import datetime
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask_session import Session
 import cloudinary, cloudinary.uploader
+from datetime import datetime
 
 app = Flask(__name__)
-from datetime import datetime
 
 @app.template_filter('datetimeformat')
 def datetimeformat(value):
@@ -18,6 +17,7 @@ def datetimeformat(value):
         return datetime.fromtimestamp(int(value)).strftime('%b %d, %I:%M %p')
     except:
         return value
+
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024 # 100MB max
 app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -40,7 +40,6 @@ def allowed_file(filename):
 
 # ========== DATABASE ==========
 def get_db():
-    DATABASE_URL = os.environ.get('DATABASE_URL')
     conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
     return conn
 
@@ -48,7 +47,6 @@ def init_db():
     conn = get_db()
     c = conn.cursor()
 
-    # SAFE CREATE - NO DROP ANYMORE
     c.execute('''CREATE TABLE IF NOT EXISTS users(
         id SERIAL PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT, email TEXT UNIQUE,
         dob TEXT, region TEXT, bio TEXT DEFAULT '', profile_pic TEXT DEFAULT 'https://res.cloudinary.com/demo/image/upload/v131415/default_avatar.png',
@@ -56,12 +54,10 @@ def init_db():
         followers INTEGER DEFAULT 0, total_likes INTEGER DEFAULT 0, is_admin BOOLEAN DEFAULT FALSE
     )''')
 
-    # SAFE MIGRATION: Rename old password column if it exists
     c.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='password'")
     if c.fetchone():
         c.execute("ALTER TABLE users RENAME COLUMN password TO password_hash")
 
-    # All other tables
     c.execute('''CREATE TABLE IF NOT EXISTS videos(id SERIAL PRIMARY KEY, username TEXT, video TEXT, caption TEXT, likes INTEGER DEFAULT 0, timestamp REAL, type TEXT DEFAULT 'video', filter TEXT DEFAULT 'None')''')
     c.execute('''CREATE TABLE IF NOT EXISTS likes(video_id INTEGER, username TEXT, PRIMARY KEY(video_id, username))''')
     c.execute('''CREATE TABLE IF NOT EXISTS following(follower TEXT, following TEXT, PRIMARY KEY(follower, following))''')
@@ -167,7 +163,7 @@ def profile(username):
     if not user:
         conn.close()
         return "User not found", 404
-    
+
     c.execute("SELECT * FROM videos WHERE username=%s ORDER BY id DESC", (username,))
     videos = c.fetchall()
     conn.close()
@@ -401,7 +397,7 @@ def upload_story():
         upload_result = cloudinary.uploader.upload(file.stream, resource_type="video")
         conn = get_db(); c = conn.cursor()
         timestamp = int(time.time())
-c.execute("INSERT INTO stories (username, video, timestamp) VALUES (%s,%s,%s)", (session['username'], upload_result['secure_url'], timestamp))
+        c.execute("INSERT INTO stories (username, video, timestamp) VALUES (%s,%s,%s)", (session['username'], upload_result['secure_url'], timestamp)) # FIXED INDENTATION
         conn.commit(); conn.close()
         return redirect('/')
     return render_template('upload_story.html')
@@ -414,7 +410,7 @@ def view_story(story_id):
     story = c.fetchone()
     conn.close()
     return render_template('view_story.html', story=story)
-    
+
 @app.route('/make-me-ceo-12345')
 def make_me_ceo():
     conn = get_db()
@@ -423,5 +419,6 @@ def make_me_ceo():
     conn.commit()
     conn.close()
     return "CEO Status: ACTIVATED for MachoDev. DELETE THIS ROUTE NOW!"
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
