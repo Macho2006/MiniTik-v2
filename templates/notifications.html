@@ -22,7 +22,7 @@ a{color:#ff0050;text-decoration:none}
     <img src="{{ n.profile_pic }}" class="avatar">
     <div>
       <span class="username">{{ n.actor }}</span> {{ n.message }}
-      <div class="time">{{ n.timestamp | int | ctime }}</div>
+      <div class="time">{{ n.timestamp | int | datetimeformat }}</div>
     </div>
   </div>
   {% endfor %}
