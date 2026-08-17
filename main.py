@@ -10,6 +10,14 @@ from flask_session import Session
 import cloudinary, cloudinary.uploader
 
 app = Flask(__name__)
+from datetime import datetime
+
+@app.template_filter('datetimeformat')
+def datetimeformat(value):
+    try:
+        return datetime.fromtimestamp(int(value)).strftime('%b %d, %I:%M %p')
+    except:
+        return value
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024 # 100MB max
 app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 app.config['SESSION_TYPE'] = 'filesystem'
