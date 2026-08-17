@@ -19,6 +19,33 @@ cloudinary.config(
   api_key = os.environ.get('CLOUD_API_KEY'),
   api_secret = os.environ.get('CLOUD_API_SECRET')
 )
+import psycopg2
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+def create_tables():
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY, 
+            username VARCHAR(50) UNIQUE, 
+            password_hash VARCHAR(200)
+        );
+        CREATE TABLE IF NOT EXISTS videos (
+            id SERIAL PRIMARY KEY, 
+            user_id INT REFERENCES users(id), 
+            video_url TEXT, 
+            caption TEXT, 
+            created_at TIMESTAMP DEFAULT NOW()
+        );
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
+    print("Tables created/checked ✅")
+
+create_tables()
 
 ADMIN_USERNAME = "MachoDev"
 ALLOWED_EXT = {'mp4', 'mov', 'avi', 'jpg', 'jpeg', 'png', 'gif'}
