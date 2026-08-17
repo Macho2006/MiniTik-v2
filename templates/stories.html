@@ -1,0 +1,7 @@
+<!DOCTYPE html><html><head><title>Stories</title><style>body{background:#000;margin:0;color:#fff}</style></head><body>
+{% for s in stories %}
+<div style="padding:20px;border-bottom:1px solid #333">
+<a href="/story/{{ s.id }}" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff">
+<img src="{{ s.profile_pic }}" style="width:50px;height:50px;border-radius:50%;border:3px solid #ff0050">
+<div><b>{{ s.username }}</b></div></a></div>{% endfor %}
+<a href="/" style="position:fixed;top:20px;right:20px;color:#fff;font-size:30px">X</a></body></html>
