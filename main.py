@@ -329,7 +329,7 @@ def admin_panel():
     c.execute("SELECT * FROM videos ORDER BY timestamp DESC")
     videos = c.fetchall()
     conn.close()
-    return render_template('admin.html', users=users, videos=videos)
+    return render_template('admin.html', users=users, videos=videos, current_user=current_user()) # ADDED current_user
 
 @app.route('/admin/ban/<username>')
 def admin_ban(username):
