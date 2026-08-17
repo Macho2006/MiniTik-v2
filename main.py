@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 import os
 import time
-from datetime import datetime
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
@@ -10,6 +9,7 @@ from flask_session import Session
 import cloudinary, cloudinary.uploader
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024 # 100MB max
 app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
@@ -19,6 +19,33 @@ cloudinary.config(
   api_key = os.environ.get('CLOUD_API_KEY'),
   api_secret = os.environ.get('CLOUD_API_SECRET')
 )
+import psycopg2
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+def create_tables():
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY, 
+            username VARCHAR(50) UNIQUE, 
+            password_hash VARCHAR(200)
+        );
+        CREATE TABLE IF NOT EXISTS videos (
+            id SERIAL PRIMARY KEY, 
+            user_id INT REFERENCES users(id), 
+            video_url TEXT, 
+            caption TEXT, 
+            created_at TIMESTAMP DEFAULT NOW()
+        );
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
+    print("Tables created/checked ✅")
+
+create_tables()
 
 ADMIN_USERNAME = "MachoDev"
 ALLOWED_EXT = {'mp4', 'mov', 'avi', 'jpg', 'jpeg', 'png', 'gif'}
@@ -156,7 +183,7 @@ def comments(video_id):
     conn.close()
     return render_template('comments.html', comments=comments, video_id=video_id)
 
-# ========== UPLOAD WITH CLOUDINARY ==========
+# ========== UPLOAD WITH CLOUDINARY - FIXED ==========
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     if 'username' not in session: return redirect('/login')
@@ -164,16 +191,25 @@ def upload():
         file = request.files['file']
         caption = request.form['caption']
         filter_type = request.form['filter']
+        
         if file and allowed_file(file.filename):
-            upload_result = cloudinary.uploader.upload(file, resource_type="auto")
+            # Upload using file.stream so Render doesn't crash
+            upload_result = cloudinary.uploader.upload(
+                file.stream, 
+                resource_type="auto",
+                chunk_size=6000000 # 6MB chunks for big videos
+            )
             file_url = upload_result['secure_url']
             ext = file.filename.rsplit('.', 1)[1].lower()
-            file_type = 'image' if ext in ['jpg','jpeg','png','gif'] else 'video'
+            file_type = 'image' if ext in ['jpg', 'jpeg', 'png', 'gif'] else 'video'
 
-            conn = get_db(); c = conn.cursor()
+            conn = get_db()
+            c = conn.cursor()
+            # 6 columns = 6 %s. Use time.time() because timestamp is REAL
             c.execute("INSERT INTO videos (username, video, caption, timestamp, type, filter) VALUES (%s,%s,%s,%s,%s,%s)",
-                (current_user(), file_url, caption, time.time(), file_type, filter_type))
-            conn.commit(); conn.close()
+                      (current_user(), file_url, caption, time.time(), file_type, filter_type))
+            conn.commit()
+            conn.close()
             return redirect('/')
     return render_template('upload.html', filters=FILTERS)
 
@@ -202,6 +238,78 @@ def notifications():
     conn = get_db(); c = conn.cursor()
     c.execute("UPDATE notifications SET is_read=1 WHERE username=%s", (current_user(),))
     c.execute("SELECT n.*, u.profile_pic FROM notifications n JOIN users u ON n.actor=u.username WHERE n.username=%s ORDER BY timestamp DESC", (current_user(),)); notifs = c.fetchall()
+=======
+    
+    conn.close()
+    return render_template('notifications.html', notifications=notifications_list, current_user=current_user())
+
+# ========== DM INBOX ==========
+@app.route('/dm')
+def dm_inbox():
+    if 'username' not in session: return redirect('/login')
+    conn = get_db(); c = conn.cursor()
+    c.execute("""SELECT DISTINCT receiver as user FROM messages WHERE sender=%s
+                 UNION
+                 SELECT DISTINCT sender as user FROM messages WHERE receiver=%s""", (current_user(), current_user())); chats = c.fetchall()
+    conn.close()
+    return render_template('dm_inbox.html', chats=chats, current_user=current_user())
+
+# ========== DM CHAT ==========
+@app.route('/dm/<username>', methods=['GET', 'POST'])
+def dm_chat(username):
+    if 'username' not in session: return redirect('/login')
+    conn = get_db(); c = conn.cursor()
+    if request.method == 'POST':
+        c.execute("INSERT INTO messages (sender, receiver, message, timestamp) VALUES (%s,%s,%s,%s)",
+            (current_user(), username, request.form['message'], time.time())); conn.commit()
+    c.execute("""SELECT * FROM messages WHERE (sender=%s AND receiver=%s) OR (sender=%s AND receiver=%s) ORDER BY timestamp ASC""",
+        (current_user(), username, username, current_user())); messages = c.fetchall()
+    conn.close()
+    return render_template('dm_chat.html', messages=messages, chat_with=username, current_user=current_user())
+
+# ========== FRIENDS / DISCOVER PAGE ==========
+@app.route('/friends')
+def friends():
+    if 'username' not in session: return redirect('/login')
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username!=%s", (current_user(),)); users = c.fetchall()
+    c.execute("SELECT following FROM following WHERE follower=%s", (current_user(),)); following = [r['following'] for r in c.fetchall()]
+    conn.close()
+    return render_template('friends.html', users=users, following=following, current_user=current_user())
+
+# ========== SEARCH ==========
+@app.route('/search')
+def search():
+    if 'username' not in session: return redirect('/login')
+    query = request.args.get('q', '').strip()
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username LIKE %s OR bio LIKE %s", (f'%{query}%', f'%{query}%')); users = c.fetchall()
+    c.execute("SELECT * FROM videos WHERE caption LIKE %s ORDER BY timestamp DESC", (f'%{query}%',)); videos = c.fetchall()
+    c.execute("SELECT following FROM following WHERE follower=%s", (current_user(),)); following = [r['following'] for r in c.fetchall()]
+    conn.close()
+    return render_template('search_results.html', query=query, users=users, videos=videos, current_user=current_user(), following=following)
+
+# ========== ADMIN + USER DELETE ==========
+@app.route('/delete/<int:post_id>')
+def delete_post(post_id):
+    if 'username' not in session: 
+        return redirect('/login')
+    
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT username FROM videos WHERE id=%s", (post_id,))
+    video = c.fetchone()
+    
+    if not video:
+        conn.close()
+        return "Post not found"
+    
+    # Allow if user is admin OR if user owns the post
+    if not session.get('is_admin') and video['username']!= current_user():
+        conn.close()
+        return "No access bro"
+    
+    c.execute("DELETE FROM videos WHERE id=%s", (post_id,))
+>>>>>>> e6285e62c2c93e54b25aedd7eebcab04739ab8ca
     conn.commit(); conn.close()
     return render_template('notifications.html', notifications=notifs, current_user=current_user())
 
