@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html>
-<head><title>Notifications - MiniTik</title>
+<head>
+<title>Notifications - MiniTik</title>
 <style>
 body{background:#000;color:white;font-family:Arial;padding:20px}
 a{color:#ff0050;text-decoration:none}
-.notif{background:#121212;padding:15px;margin:10px 0;border-radius:10px;border-left:3px solid #ff0050}
-.avatar{width:30px;height:30px;border-radius:50%;background:#ff0050;display:inline-block;text-align:center;line-height:30px;margin-right:10px}
+.notif{background:#121212;padding:15px;margin:10px 0;border-radius:10px;border-left:3px solid #ff0050;display:flex;align-items:center;gap:12px}
+.avatar{width:40px;height:40px;border-radius:50%;object-fit:cover}
+.username{font-weight:bold;color:#ff0050}
+.time{font-size:12px;color:#888}
+.unread{border-left:3px solid #00f2ea}
 </style>
 </head>
 <body>
@@ -14,9 +18,12 @@ a{color:#ff0050;text-decoration:none}
 
 {% if notifications %}
   {% for n in notifications %}
-  <div class="notif">
-    <span class="avatar">{{ n.from[0]|upper }}</span>
-    <b>{{ n.from }}</b> {{ n.text }}
+  <div class="notif {% if not n.is_read %}unread{% endif %}">
+    <img src="{{ n.profile_pic }}" class="avatar">
+    <div>
+      <span class="username">{{ n.actor }}</span> {{ n.message }}
+      <div class="time">{{ n.timestamp | int | ctime }}</div>
+    </div>
   </div>
   {% endfor %}
 {% else %}
