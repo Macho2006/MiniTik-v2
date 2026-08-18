@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<style>.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px;padding:20px}</style>
+<h2 style="text-align:center;color:#ff0050">🔥 Trending</h2>
+<div class="grid">
+{% for v in videos %}
+<div style="background:#111;padding:10px;border-radius:12px">
+<video src="{{v.video}}" controls style="width:100%;border-radius:8px"></video>
+<p><a href="/profile/{{v.username}}">@{{v.username}}</a> ❤️{{v.likes}}</p>
+</div>
+{% endfor %}
+</div>
+{% endblock %}
