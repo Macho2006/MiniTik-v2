@@ -1,14 +1,56 @@
-<!DOCTYPE html>
-<html>
-<head><title>Upload Story</title>
-<style>body{background:#000;color:#fff;font-family:Arial;text-align:center;padding-top:100px}</style>
-</head>
-<body>
-<h2>📸 Post Story - 24 Hours</h2>
-<form method=post enctype=multipart/form-data>
-<input type=file name=story accept="video/*,image/*" required style="color:#fff"><br><br>
-<button style="padding:12px 30px;background:#ff0050;color:#fff;border:0;border-radius:8px;font-size:16px">Post Story</button>
-</form>
-<br><a href="/" style="color:#888">Cancel</a>
-</body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+<style>
+.upload-container{max-width:500px;margin:60px auto;padding:30px;text-align:center}
+.box{background:#111;padding:30px;border-radius:15px;border:2px solid #ff0050;box-shadow:0 0 15px #ff0050}
+.box h2{color:#ff0050;margin-bottom:10px}
+.box p{color:#888;margin-bottom:20px}
+input[type=file]{padding:12px;width:90%;background:#222;color:white;border-radius:10px;border:none;margin:15px 0}
+.preview{width:100%;max-width:350px;border-radius:15px;margin:15px auto;display:none;border:2px solid #222}
+.btn{padding:12px 30px;background:#ff0050;color:#fff;border:0;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;width:90%}
+.btn:hover{background:#e0004f;box-shadow:0 0 10px #ff0050}
+.cancel{color:#888;text-decoration:none;display:block;margin-top:15px}
+</style>
+
+<div class="upload-container">
+    <div class="box">
+        <h2>📸 Post Story</h2>
+        <p>Disappears in 24 hours</p>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}<p style="color:#00f2ea">{{ messages[0] }}</p>{% endif %}
+        {% endwith %}
+
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="story" id="storyInput" accept="video/*,image/*" required onchange="previewFile()">
+            
+            <img id="imgPreview" class="preview">
+            <video id="vidPreview" class="preview" controls></video>
+            
+            <button class="btn" type="submit">Post Story</button>
+        </form>
+        <a href="/stories" class="cancel">Cancel</a>
+    </div>
+</div>
+
+<script>
+function previewFile(){
+    const file = document.getElementById('storyInput').files[0];
+    const img = document.getElementById('imgPreview');
+    const vid = document.getElementById('vidPreview');
+    img.style.display = 'none';
+    vid.style.display = 'none';
+    
+    if(file){
+        const url = URL.createObjectURL(file);
+        if(file.type.startsWith('image')){
+            img.src = url;
+            img.style.display = 'block';
+        } else {
+            vid.src = url;
+            vid.style.display = 'block';
+        }
+    }
+}
+</script>
+{% endblock %}
