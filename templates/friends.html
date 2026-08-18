@@ -1,8 +1,38 @@
-<!DOCTYPE html><html><head><title>Friends - MiniTik</title>
-<style>body{background:#000;color:white;font-family:Arial;padding:20px} a{color:#ff0050;text-decoration:none}.user{background:#121212;padding:15px;margin:10px 0;border-radius:10px}</style>
-</head><body>
-<a href="/">← Back</a><h1>Friends / Discover 👥</h1>
-{% for u in all_users %}
-<div class="user"><b>@{{ u }}</b> {% if users[u].verified %}✓{% endif %}
-{% if u in following %}<span style="float:right">Following</span>{% else %}<a href="/follow/{{ u }}" style="float:right">Follow</a>{% endif %}</div>
-{% endfor %}</body></html>
+{% extends "base.html" %}
+{% block content %}
+<style>
+.discover-container{max-width:600px;margin:0 auto;padding:20px}
+.page-title{color:#ff0050;margin-bottom:20px}
+.user-card{background:#121212;padding:15px;margin:10px 0;border-radius:12px;display:flex;justify-content:space-between;align-items:center;border:1px solid #222}
+.user-card:hover{border-color:#ff0050}
+.user-info b{color:#fff;font-size:16px}
+.verified{color:#00f5d4;margin-left:5px}
+.btn-follow{padding:8px 16px;background:#ff0050;color:white;border:none;border-radius:20px;text-decoration:none;font-weight:bold;font-size:14px}
+.btn-following{padding:8px 16px;background:#333;color:#888;border:none;border-radius:20px;text-decoration:none;font-size:14px}
+</style>
+
+<div class="discover-container">
+    <h1 class="page-title">Friends / Discover 👥</h1>
+
+    {% if all_users %}
+        {% for u in all_users %}
+        <div class="user-card">
+            <div class="user-info">
+                <b>@{{ u }}</b> 
+                {% if users[u].get('verified') %}<span class="verified">✓</span>{% endif %}
+            </div>
+            
+            {% if u == current_user.username %}
+                <span class="btn-following">You</span>
+            {% elif u in following %}
+                <a href="/unfollow/{{ u }}" class="btn-following">Following</a>
+            {% else %}
+                <a href="/follow/{{ u }}" class="btn-follow">Follow</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="text-align:center;color:#888;margin-top:50px">No users yet</p>
+    {% endif %}
+</div>
+{% endblock %}
