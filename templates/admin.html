@@ -19,11 +19,23 @@ th,td{padding:12px;border:1px solid #333;text-align:left}
 <a href="/" class="back">← Back to Home</a>
 <h1>Admin Panel</h1>
 
-<div class="stats">
-    <div class="stat-box"><h2>{{ stats.total_users }}</h2><p>Total Users</p></div>
-    <div class="stat-box"><h2>{{ stats.total_videos }}</h2><p>Total Posts</p></div>
-    <div class="stat-box"><h2>{{ stats.new_today }}</h2><p>New Today</p></div>
-    <div class="stat-box"><h2>{{ stats.total_banned }}</h2><p>Banned</p></div>
+<div class="stats-container">
+    <div class="stat-box">
+        <h3>Total Users</h3>
+        <p>{{ stats.total_users }}</p>
+    </div>
+    <div class="stat-box">
+        <h3>Total Posts</h3>
+        <p>{{ stats.total_videos }}</p>
+    </div>
+    <div class="stat-box">
+        <h3>New Today</h3>
+        <p>{{ stats.new_today }}</p>
+    </div>
+    <div class="stat-box">
+        <h3>Banned</h3>
+        <p>{{ stats.total_banned }}</p>
+    </div>
 </div>
 
 <h2>Manage Users</h2>
