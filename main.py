@@ -496,6 +496,15 @@ def view_story(story_id):
 with app.app_context():
     init_db()
     make_admin()
-
+    @app.route('/reset_admin')
+    def reset_admin():
+        conn = get_db(); c = conn.cursor()
+        # Delete old MachoDev if exists
+        c.execute("DELETE FROM users WHERE username=%s", (ADMIN_USERNAME,))
+        # Create new MachoDev with password: admin123
+        c.execute("INSERT INTO users (username,password_hash,email,dob,region,is_admin) VALUES (%s,%s,%s,%s,%s,TRUE)",
+            (ADMIN_USERNAME, generate_password_hash('admin123'), 'mocugo2006@gmail.com', '2006-08-21', 'Other'))
+        conn.commit(); conn.close()
+        return "MachoDev RESET! Username: MachoDev Password: admin123"
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
