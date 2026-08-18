@@ -1,49 +1,47 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Settings - MiniTik</title>
+{% extends "base.html" %}
+{% block content %}
 <style>
-*{margin:0; padding:0; box-sizing:border-box}
-body{background:#000; color:white; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial; padding:20px}
-.box{background:#111; max-width:500px; margin:40px auto; padding:30px; border-radius:15px; text-align:center}
+.settings-container{max-width:500px; margin:40px auto; padding:30px}
+.box{background:#111; padding:30px; border-radius:15px; text-align:center}
 .avatar{width:120px; height:120px; border-radius:50%; object-fit:cover; margin-bottom:15px; border:3px solid #ff0050}
-input, textarea{padding:12px; width:90%; border-radius:10px; border:none; background:#222; color:white; margin:8px 0; font-size:15px}
+input, textarea{padding:12px; width:90%; border-radius:10px; border:none; background:#222; color:white; margin:8px 0; font-size:15px; outline:none}
+input:focus, textarea:focus{border:1px solid #ff0050}
 button{padding:12px 25px; border-radius:10px; border:none; background:#ff0050; color:white; font-weight:bold; cursor:pointer; margin-top:10px; width:90%}
 button:hover{background:#e6004c}
 a{color:#00f2ea; text-decoration:none; display:block; margin-top:15px}
 label{font-size:14px; color:#aaa; display:block; text-align:left; margin-left:5%}
+.divider{border:1px solid #222; margin:25px 0}
 </style>
-</head>
-<body>
-<div class="box">
-    <h2>⚙️ Settings</h2>
-    <p style="color:#888; margin-bottom:20px">Update your profile</p>
 
-    <!-- CURRENT PFP -->
-    <img src="{{ session.profile_pic }}" class="avatar">
+<div class="settings-container">
+    <div class="box">
+        <h2 style="color:#ff0050">⚙️ Settings</h2>
+        <p style="color:#888; margin-bottom:20px">Update your profile</p>
 
-    <!-- FORM 1: UPLOAD PFP -->
-    <form method="POST" enctype="multipart/form-data">
-        <label>Change Profile Picture</label>
-        <input type="file" name="profile_pic" accept="image/*" required>
-        <button type="submit">Upload PFP</button>
-    </form>
+        <!-- CURRENT PFP -->
+        <img src="{{ current_user.profile_pic if current_user.profile_pic else '/static/default.jpg' }}" class="avatar">
 
-    <hr style="border:1px solid #222; margin:25px 0">
+        <!-- FORM 1: UPLOAD PFP -->
+        <form method="POST" enctype="multipart/form-data" action="/settings">
+            <label>Change Profile Picture</label>
+            <input type="file" name="profile_pic" accept="image/*" required>
+            <button type="submit" name="action" value="upload_pfp">Upload PFP</button>
+        </form>
 
-    <!-- FORM 2: UPDATE USERNAME + BIO -->
-    <form method="POST" action="/update_profile">
-        <label>Username</label>
-        <input name="username" value="{{ user.username }}" required>
-        
-        <label>Bio</label>
-        <textarea name="bio" placeholder="Write bio..." rows="3">{{ user.bio }}</textarea>
-        
-        <button type="submit">Save Changes</button>
-    </form>
+        <div class="divider"></div>
 
-    <a href="/">← Back to Home</a>
+        <!-- FORM 2: UPDATE USERNAME + BIO -->
+        <form method="POST" action="/settings">
+            <label>Username</label>
+            <input name="username" value="{{ current_user.username }}" required>
+            
+            <label>Bio</label>
+            <textarea name="bio" placeholder="Write bio..." rows="3">{{ current_user.bio }}</textarea>
+            
+            <button type="submit" name="action" value="update_info">Save Changes</button>
+        </form>
+
+        <a href="/">← Back to Home</a>
+    </div>
 </div>
-</body>
-</html>
+{% endblock %}
