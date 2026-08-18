@@ -1,116 +1,38 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Search: {{ query }} - MiniTik</title>
+{% extends "base.html" %}
+{% block content %}
 <style>
-    body {
-        background: #000;
-        color: white;
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 20px;
-    }
-    a {color: #ff0050; text-decoration: none;}
-   .topbar {
-        display: flex;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-   .topbar h1 {
-        flex: 1;
-        text-align: center;
-        font-size: 22px;
-        color: #ff0050;
-    }
-   .search-bar {
-        margin: 20px 0;
-        text-align: center;
-    }
-   .search-bar input {
-        padding: 10px;
-        width: 60%;
-        border: none;
-        border-radius: 20px;
-        background: #222;
-        color: white;
-        outline: none;
-    }
-   .search-bar button {
-        padding: 10px 20px;
-        background: #ff0050;
-        border: none;
-        border-radius: 20px;
-        color: white;
-        cursor: pointer;
-    }
-    h2, h3 {color: #ff0050;}
-   .user-card,.video-card {
-        background: #121212;
-        padding: 15px;
-        margin: 15px 0;
-        border-radius: 12px;
-        border: 1px solid #222;
-    }
-   .user-info {
-        display: flex;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-   .profile-pic {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: #ff0050;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        margin-right: 10px;
-    }
-   .video-card video {
-        width: 100%;
-        border-radius: 10px;
-        margin-top: 10px;
-    }
-   .caption {margin: 10px 0;}
-   .actions {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-top: 10px;
-    }
-   .like-btn {
-        background: #ff0050;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 20px;
-        color: white;
-        cursor: pointer;
-    }
-   .no-results {text-align: center; color: #888; margin-top: 50px;}
+.search-container{max-width:700px;margin:0 auto;padding:20px}
+.search-bar{text-align:center;margin:20px 0}
+.search-bar input{padding:12px;width:60%;border:none;border-radius:20px;background:#222;color:white;outline:none}
+.search-bar button{padding:12px 20px;background:#ff0050;border:none;border-radius:20px;color:white;cursor:pointer;font-weight:bold;margin-left:5px}
+.section-title{color:#ff0050;margin:20px 0 10px 0}
+.user-card,.video-card{background:#121212;padding:15px;margin:15px 0;border-radius:12px;border:1px solid #222}
+.user-card:hover,.video-card:hover{border-color:#ff0050}
+.user-info{display:flex;align-items:center;gap:12px}
+.profile-pic{width:45px;height:45px;border-radius:50%;background:#ff0050;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#000}
+.verified{color:#00f2ea}
+.caption{margin:10px 0;color:#ccc}
+.video-card video,.video-card img{width:100%;border-radius:10px;margin-top:10px}
+.actions{display:flex;align-items:center;gap:15px;margin-top:10px}
+.like-btn{background:#ff0050;border:none;padding:8px 15px;border-radius:20px;color:white;cursor:pointer}
+.no-results{text-align:center;color:#888;margin-top:50px}
 </style>
-</head>
-<body>
 
-<div class="topbar">
-    <a href="/">← Back</a>
-    <h1>Search</h1>
-</div>
+<div class="search-container">
+    <h1 style="color:#ff0050;text-align:center">Search</h1>
 
-<div class="search-bar">
-    <form action="{{ url_for('search') }}" method="get">
-        <input type="text" name="q" placeholder="Search users or videos..." value="{{ query }}">
-        <button type="submit">Search</button>
-    </form>
-</div>
+    <div class="search-bar">
+        <form action="{{ url_for('search') }}" method="get">
+            <input type="text" name="q" placeholder="Search users or videos..." value="{{ query }}">
+            <button type="submit">Search</button>
+        </form>
+    </div>
 
 {% if query %}
-    <h2>Results for: "{{ query }}"</h2>
+    <h2 class="section-title">Results for: "{{ query }}"</h2>
 
     <!-- PEOPLE SECTION -->
-    <h3>People</h3>
+    <h3 class="section-title">People</h3>
     {% if users %}
         {% for user in users %}
         <div class="user-card">
@@ -121,10 +43,10 @@
                         <a href="{{ url_for('profile', username=user['username']) }}" style="color:white">
                             {{ user['username'] }}
                         </a>
-                        {% if user['verified'] %} ✅ {% endif %}
+                        {% if user.get('verified') %} <span class="verified">✓</span>{% endif %}
                     </strong>
-                    <p style="margin:5px 0 0 0; color:#aaa; font-size:14px">{{ user['bio'] or 'No bio' }}</p>
-                    <p style="margin:5px 0 0 0; color:#aaa; font-size:12px">{{ user['followers'] }} followers</p>
+                    <p style="margin:5px 0 0 0; color:#aaa; font-size:14px">{{ user.get('bio') or 'No bio' }}</p>
+                    <p style="margin:5px 0 0 0; color:#aaa; font-size:12px">{{ user.get('followers',0) }} followers</p>
                 </div>
             </div>
         </div>
@@ -134,7 +56,7 @@
     {% endif %}
 
     <!-- VIDEOS SECTION -->
-    <h3>Videos</h3>
+    <h3 class="section-title">Videos</h3>
     {% if videos %}
         {% for video in videos %}
         <div class="video-card">
@@ -147,15 +69,19 @@
                 </strong>
             </div>
             <p class="caption">{{ video['caption'] }}</p>
-            <video controls>
-                <source src="{{ url_for('static', filename='uploads/' + video['video']) }}" type="video/mp4">
-                Your browser does not support video.
-            </video>
+            
+            {% if video['type'] == 'image' %}
+                <img src="{{ video['video'] }}">
+            {% else %}
+                <video controls src="{{ video['video'] }}"></video>
+            {% endif %}
+
             <div class="actions">
                 <a href="{{ url_for('like', post_id=video['id']) }}">
-                    <button class="like-btn">♡ Like</button>
+                    <button class="like-btn">❤️ Like</button>
                 </a>
                 <span style="color:#888;">{{ video['likes'] }} likes</span>
+                <a href="{{ url_for('comments', video_id=video['id']) }}" style="color:#888">💬 Comment</a>
             </div>
         </div>
         {% endfor %}
@@ -166,6 +92,5 @@
 {% else %}
     <p class="no-results">Type something in the search bar to start</p>
 {% endif %}
-
-</body>
-</html>
+</div>
+{% endblock %}
