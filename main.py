@@ -423,6 +423,19 @@ def ban_user(username):
     conn.commit(); conn.close()
     return redirect('/admin')
 
+@app.route('/admin/verify/<username>')
+@login_required
+def verify_user(username):
+    if not current_user.is_admin: return "Access Denied", 403
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT verified FROM users WHERE username=%s", (username,))
+    current = c.fetchone()['verified']
+    new_status = 0 if current else 1
+    c.execute("UPDATE users SET verified=%s WHERE username=%s", (new_status, username))
+    conn.commit(); conn.close()
+    flash(f'{"Verified" if new_status else "Unverified"} {username}')
+    return redirect('/admin')
+
 @app.route('/admin/delete_video/<int:video_id>')
 @login_required
 def delete_video(video_id):
