@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask_session import Session
-from flask_login import login_required, current_user
+from flask_login import login_required
 import cloudinary, cloudinary.uploader
 from datetime import datetime
 
@@ -48,15 +48,6 @@ def get_db():
 def init_db():
     conn = get_db()
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS messages
-             (id INTEGER PRIMARY KEY, 
-              sender_id INTEGER, 
-              receiver_id INTEGER, 
-              message TEXT, 
-              timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-              is_read INTEGER DEFAULT 0,
-              FOREIGN KEY (sender_id) REFERENCES users(id),
-              FOREIGN KEY (receiver_id) REFERENCES users(id))''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS users(
         id SERIAL PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT, email TEXT UNIQUE,
@@ -69,6 +60,10 @@ def init_db():
     if c.fetchone():
         c.execute("ALTER TABLE users RENAME COLUMN password TO password_hash")
 
+    c.execute('''CREATE TABLE IF NOT EXISTS messages(
+        id SERIAL PRIMARY KEY, sender TEXT, receiver TEXT, message TEXT, timestamp REAL, read INTEGER DEFAULT 0
+    )''')
+
     c.execute('''CREATE TABLE IF NOT EXISTS videos(id SERIAL PRIMARY KEY, username TEXT, video TEXT, caption TEXT, likes INTEGER DEFAULT 0, timestamp REAL, type TEXT DEFAULT 'video', filter TEXT DEFAULT 'None')''')
     c.execute('''CREATE TABLE IF NOT EXISTS likes(video_id INTEGER, username TEXT, PRIMARY KEY(video_id, username))''')
     c.execute('''CREATE TABLE IF NOT EXISTS following(follower TEXT, following TEXT, PRIMARY KEY(follower, following))''')
@@ -77,7 +72,6 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS stories(id SERIAL PRIMARY KEY, username TEXT, video TEXT, timestamp REAL)''')
     c.execute('''CREATE TABLE IF NOT EXISTS pages(id SERIAL PRIMARY KEY, owner TEXT, page_name TEXT, followers INTEGER DEFAULT 0)''')
     c.execute('''CREATE TABLE IF NOT EXISTS support_tickets(id SERIAL PRIMARY KEY, username TEXT, issue TEXT, timestamp REAL, status TEXT DEFAULT 'Open')''')
-    c.execute('''CREATE TABLE IF NOT EXISTS messages(id SERIAL PRIMARY KEY, sender TEXT, receiver TEXT, message TEXT, timestamp REAL, read INTEGER DEFAULT 0)''')
     c.execute('''CREATE TABLE IF NOT EXISTS friends(user1 TEXT, user2 TEXT, PRIMARY KEY(user1, user2))''')
     conn.commit()
     conn.close()
@@ -89,7 +83,8 @@ def startup():
         app.db_initialized = True
         print("DB INITIALIZED SUCCESSFULLY")
 
-def current_user(): return session.get('username')
+def current_user():
+    return session.get('username')
 
 def create_notification(username, actor, type, target_id, message):
     if username == actor: return
@@ -131,6 +126,7 @@ def logout(): session.clear(); return redirect('/login')
 
 # ========== PROFILE PIC UPLOAD ==========
 @app.route('/settings', methods=['GET', 'POST'])
+@login_required
 def settings():
     if 'username' not in session: return redirect('/login')
     if request.method == 'POST':
@@ -148,6 +144,7 @@ def settings():
 
 # ========== MAIN FEEDS ==========
 @app.route('/')
+@login_required
 def index():
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
@@ -167,6 +164,7 @@ def index():
 
 # ========== PROFILE ==========
 @app.route('/profile/<username>')
+@login_required
 def profile(username):
     conn = get_db(); c = conn.cursor()
     c.execute("SELECT * FROM users WHERE username=%s", (username,))
@@ -182,6 +180,7 @@ def profile(username):
 
 # ========== FOLLOW ==========
 @app.route('/follow/<username>')
+@login_required
 def follow(username):
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
@@ -197,6 +196,7 @@ def follow(username):
 
 # ========== COMMENTS ==========
 @app.route('/comments/<int:video_id>', methods=['GET', 'POST'])
+@login_required
 def comments(video_id):
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
@@ -213,6 +213,7 @@ def comments(video_id):
 
 # ========== UPLOAD WITH CLOUDINARY ==========
 @app.route('/upload', methods=['GET', 'POST'])
+@login_required
 def upload():
     if 'username' not in session: return redirect('/login')
     if request.method == 'POST':
@@ -237,6 +238,7 @@ def upload():
 
 # ========== LIKE ==========
 @app.route('/like/<int:post_id>')
+@login_required
 def like(post_id):
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
@@ -256,6 +258,7 @@ def like(post_id):
 
 # ========== NOTIFICATIONS ==========
 @app.route('/notifications')
+@login_required
 def notifications():
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
@@ -265,103 +268,54 @@ def notifications():
     conn.close()
     return render_template('notifications.html', notifications=notifs, current_user=current_user())
 
-# ========== DM ==========
+# ========== DM - CLEAN VERSION ==========
 @app.route('/dm')
+@login_required
 def dm_inbox():
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
-    c.execute("""SELECT DISTINCT receiver as user FROM messages WHERE sender=%s
+    c.execute("""SELECT DISTINCT u.username, u.profile_pic
+                 FROM users u
+                 JOIN messages m ON u.username = m.receiver
+                 WHERE m.sender = %s
                  UNION
-                 SELECT DISTINCT sender as user FROM messages WHERE receiver=%s""", (current_user(), current_user()))
+                 SELECT DISTINCT u.username, u.profile_pic
+                 FROM users u
+                 JOIN messages m ON u.username = m.sender
+                 WHERE m.receiver = %s""", (current_user(), current_user()))
     chats = c.fetchall()
     conn.close()
     return render_template('dm_inbox.html', chats=chats, current_user=current_user())
-@app.route('/dm/<username>')
-@login_required
-def dm(username):
-    conn = get_db_connection()
-    c = conn.cursor()
-    
-    # Get receiver info
-    c.execute("SELECT * FROM users WHERE username = ?", (username,))
-    receiver = c.fetchone()
-    if not receiver: return "User not found", 404
-    
-    # Get chat history
-    c.execute("""SELECT m.*, u.username as sender_name 
-                 FROM messages m JOIN users u ON m.sender_id = u.id
-                 WHERE (sender_id = ? AND receiver_id = ?) 
-                 OR (sender_id = ? AND receiver_id = ?)
-                 ORDER BY timestamp ASC""", 
-              (session['user_id'], receiver['id'], receiver['id'], session['user_id']))
-    messages = c.fetchall()
-    
-    # Mark as read
-    c.execute("UPDATE messages SET is_read = 1 WHERE receiver_id = ? AND sender_id = ?", 
-              (session['user_id'], receiver['id']))
-    conn.commit()
-    conn.close()
-    
-    return render_template('dm.html', receiver=receiver, messages=messages)
-
-@app.route('/send_message', methods=['POST'])
-@login_required
-def send_message():
-    receiver_id = request.form['receiver_id']
-    message = request.form['message']
-    if message.strip() == "": return redirect(request.referrer)
-    
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)",
-              (session['user_id'], receiver_id, message))
-    conn.commit()
-    conn.close()
-    
-    return redirect(request.referrer)
 
 @app.route('/dm/<username>', methods=['GET', 'POST'])
-def dm_chat(username):
+@login_required
+def dm_with_user(username):
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
+
+    c.execute("SELECT * FROM users WHERE username=%s", (username,))
+    receiver = c.fetchone()
+    if not receiver: return "User not found", 404
+
     if request.method == 'POST':
-        c.execute("INSERT INTO messages (sender, receiver, message, timestamp) VALUES (%s,%s,%s,%s)",
-            (current_user(), username, request.form['message'], time.time()))
-        conn.commit()
-    c.execute("""SELECT * FROM messages WHERE (sender=%s AND receiver=%s) OR (sender=%s AND receiver=%s) ORDER BY timestamp ASC""",
+        message = request.form['message']
+        if message.strip()!= "":
+            c.execute("INSERT INTO messages (sender, receiver, message, timestamp) VALUES (%s,%s,%s,%s)",
+                (current_user(), username, message, time.time()))
+            conn.commit()
+
+    c.execute("""SELECT * FROM messages
+                 WHERE (sender=%s AND receiver=%s) OR (sender=%s AND receiver=%s)
+                 ORDER BY timestamp ASC""",
         (current_user(), username, username, current_user()))
     messages = c.fetchall()
+
     conn.close()
-    return render_template('dm_chat.html', messages=messages, chat_with=username, current_user=current_user())
-@app.route('/dm_inbox')
-@login_required
-def dm_inbox():
-    conn = get_db_connection()
-    c = conn.cursor()
-    
-    # Get last message from each conversation
-    c.execute("""SELECT DISTINCT u.id, u.username, u.profile_pic,
-                 (SELECT message FROM messages 
-                  WHERE (sender_id = u.id AND receiver_id = ?) 
-                  OR (sender_id = ? AND receiver_id = u.id) 
-                  ORDER BY timestamp DESC LIMIT 1) as last_message,
-                 (SELECT timestamp FROM messages 
-                  WHERE (sender_id = u.id AND receiver_id = ?) 
-                  OR (sender_id = ? AND receiver_id = u.id) 
-                  ORDER BY timestamp DESC LIMIT 1) as last_time
-                 FROM users u
-                 WHERE u.id IN (SELECT DISTINCT sender_id FROM messages WHERE receiver_id = ?
-                                UNION
-                                SELECT DISTINCT receiver_id FROM messages WHERE sender_id = ?)
-                 ORDER BY last_time DESC""",
-              (session['user_id'], session['user_id'], session['user_id'], session['user_id'], session['user_id'], session['user_id']))
-    
-    chats = c.fetchall()
-    conn.close()
-    return render_template('dm_inbox.html', chats=chats)
+    return render_template('dm_chat.html', messages=messages, chat_with=username, receiver=receiver, current_user=current_user())
 
 # ========== FRIENDS ==========
 @app.route('/friends')
+@login_required
 def friends():
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
@@ -374,6 +328,7 @@ def friends():
 
 # ========== SEARCH ==========
 @app.route('/search')
+@login_required
 def search():
     if 'username' not in session: return redirect('/login')
     query = request.args.get('q', '').strip()
@@ -389,6 +344,7 @@ def search():
 
 # ========== ADMIN ==========
 @app.route('/delete/<int:post_id>')
+@login_required
 def delete_post(post_id):
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
@@ -400,44 +356,30 @@ def delete_post(post_id):
     return redirect(request.referrer or '/')
 
 @app.route('/admin')
+@login_required
 def admin_panel():
     if 'username' not in session: return redirect('/login')
     if not session.get('is_admin'): return "Access Denied CEO Only", 403
-    
+
     conn = get_db(); c = conn.cursor()
-    
-    # Get all users
     c.execute("SELECT id, username, verified, banned, followers, total_likes, profile_pic FROM users ORDER BY id DESC")
     users = c.fetchall()
-    
-    # Get all videos
     c.execute("SELECT * FROM videos ORDER BY timestamp DESC")
     videos = c.fetchall()
-    
-    # Get stats
     c.execute("SELECT COUNT(*) as count FROM users")
     total_users = c.fetchone()['count']
-    
     c.execute("SELECT COUNT(*) as count FROM videos")
     total_videos = c.fetchone()['count']
-    
     c.execute("SELECT COUNT(*) as count FROM users WHERE banned = 1")
     total_banned = c.fetchone()['count']
-    
-        # TEMP: Set new_today to 0 until we add created_at column
     new_today = 0
-    
     conn.close()
-    
-    stats = {
-        'total_users': total_users,
-        'total_videos': total_videos,
-        'total_banned': total_banned,
-        'new_today': new_today
-    }
-    
+
+    stats = {'total_users': total_users, 'total_videos': total_videos, 'total_banned': total_banned, 'new_today': new_today}
     return render_template('admin.html', users=users, videos=videos, stats=stats, current_user=session['username'])
+
 @app.route('/admin/ban/<username>')
+@login_required
 def admin_ban(username):
     if not session.get('is_admin'): return "Nope", 403
     conn = get_db(); c = conn.cursor()
@@ -446,6 +388,7 @@ def admin_ban(username):
     return redirect('/admin')
 
 @app.route('/admin/unban/<username>')
+@login_required
 def admin_unban(username):
     if not session.get('is_admin'): return "Nope", 403
     conn = get_db(); c = conn.cursor()
@@ -454,6 +397,7 @@ def admin_unban(username):
     return redirect('/admin')
 
 @app.route('/admin/verify/<username>')
+@login_required
 def admin_verify(username):
     if not session.get('is_admin'): return "Nope", 403
     conn = get_db(); c = conn.cursor()
@@ -462,6 +406,7 @@ def admin_verify(username):
     return redirect('/admin')
 
 @app.route('/admin/unverify/<username>')
+@login_required
 def admin_unverify(username):
     if not session.get('is_admin'): return "Nope", 403
     conn = get_db(); c = conn.cursor()
@@ -470,6 +415,7 @@ def admin_unverify(username):
     return redirect('/admin')
 
 @app.route('/admin/delete_video/<int:video_id>')
+@login_required
 def admin_delete_video(video_id):
     if not session.get('is_admin'): return "Nope", 403
     conn = get_db(); c = conn.cursor()
@@ -479,6 +425,7 @@ def admin_delete_video(video_id):
 
 # ========== STORIES ==========
 @app.route('/stories')
+@login_required
 def stories():
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
@@ -496,6 +443,7 @@ def stories():
     return render_template('stories.html', stories=stories, current_user=current_user())
 
 @app.route('/story/upload', methods=['GET', 'POST'])
+@login_required
 def upload_story():
     if 'username' not in session: return redirect('/login')
     if request.method == 'POST':
@@ -503,12 +451,13 @@ def upload_story():
         upload_result = cloudinary.uploader.upload(file.stream, resource_type="video")
         conn = get_db(); c = conn.cursor()
         timestamp = int(time.time())
-        c.execute("INSERT INTO stories (username, video, timestamp) VALUES (%s,%s,%s)", (session['username'], upload_result['secure_url'], timestamp)) # FIXED INDENTATION
+        c.execute("INSERT INTO stories (username, video, timestamp) VALUES (%s,%s,%s)", (session['username'], upload_result['secure_url'], timestamp))
         conn.commit(); conn.close()
         return redirect('/')
     return render_template('upload_story.html')
 
 @app.route('/story/<int:story_id>')
+@login_required
 def view_story(story_id):
     if 'username' not in session: return redirect('/login')
     conn = get_db(); c = conn.cursor()
@@ -516,6 +465,6 @@ def view_story(story_id):
     story = c.fetchone()
     conn.close()
     return render_template('view_story.html', story=story)
-    
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
