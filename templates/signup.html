@@ -1,28 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Sign Up</title>
-<style>
-body{background:#000;color:white;text-align:center;padding:50px}
-input,select{padding:10px;margin:8px;width:250px;background:white;color:black;border:none;border-radius:8px;font-size:16px}
-button{padding:10px 20px;background:#ff0050;border:none;border-radius:8px;color:white;font-weight:bold;cursor:pointer}
-button:hover{opacity:0.8}
-</style>
+    <title>Sign Up - MiniTik</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { background: #000; color: white; font-family: Arial; text-align: center; padding: 50px; margin:0 }
+        h1 { color: #ff0050; font-size: 35px; text-shadow: 0 0 10px #ff0050; margin-bottom:10px }
+        .box { background: #111; padding: 30px; border-radius: 15px; width: 90%; max-width:400px; margin: auto; border: 2px solid #ff0050; box-shadow: 0 0 15px #ff0050; }
+        input, select { padding: 12px; width: 80%; margin: 10px; border-radius: 8px; border: none; background: #222; color: white; outline:none; font-size:16px }
+        input:focus, select:focus{border:1px solid #ff0050}
+        button { background: #ff0050; color: white; border: none; padding: 12px 30px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold; width:85% }
+        button:hover { background: #e0004f; box-shadow: 0 0 10px #ff0050; }
+        a { color: #ff0050; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .flash { background: #ff0050; color: #000; padding: 10px; margin: 10px 0; border-radius: 5px; font-weight:bold }
+        label{font-size:12px;color:#aaa;display:block;text-align:left;margin-left:10%}
+    </style>
 </head>
 <body>
-<h1>Join MiniTik</h1>
-<form method="POST">
-<input name="username" placeholder="Username" required><br>
-<input name="password" type="password" placeholder="Password" required><br>
-<input name="email" type="email" placeholder="Email/Gmail" required><br>
-<input name="dob" type="date" required><br>
-<select name="region" required>
-    <option value="">Select Region</option>
-    <option>Lagos</option>
-    <option>Abuja</option>
-    <option>Other</option>
-</select><br>
-<button>Sign Up</button>
-</form>
+    <h1>🔥 Join MiniTik 🔥</h1>
+    <div class="box">
+        <h2>Create Account</h2>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="flash">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <input name="username" placeholder="Username" required><br>
+            
+            <input name="email" type="email" placeholder="Email/Gmail" required><br>
+            
+            <input name="password" type="password" placeholder="Password" required><br>
+            
+            <label>Date of Birth</label>
+            <input name="dob" type="date" required><br>
+            
+            <label>Region</label>
+            <select name="region" required>
+                <option value="">Select Region</option>
+                <option>Lagos</option>
+                <option>Abuja</option>
+                <option>Port Harcourt</option>
+                <option>Kano</option>
+                <option>Other</option>
+            </select><br>
+            
+            <button type="submit">Sign Up</button>
+        </form>
+        <br>
+        <p>Already have an account? <a href="/login">Login</a></p>
+    </div>
 </body>
 </html>
