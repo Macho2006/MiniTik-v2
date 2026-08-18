@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<style>.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px;padding:20px}</style>
+<h2 style="text-align:center;color:#00f5d4">Following</h2>
+<div class="grid">
+{% for v in videos %}
+<div style="background:#111;padding:10px;border-radius:12px">
+<video src="{{v.video}}" controls style="width:100%;border-radius:8px"></video>
+<p><a href="/profile/{{v.username}}">@{{v.username}}</a></p>
+</div>
+{% else %}<p style="text-align:center">Follow people to see posts</p>{% endfor %}
+</div>
+{% endblock %}
