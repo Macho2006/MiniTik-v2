@@ -14,11 +14,10 @@ app = Flask(__name__)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login' # <-- sends people to /login if not logged in
+login_manager.login_view = 'login'
 
 @login_manager.user_loader
 def load_user(user_id):
-    # We use session instead of Flask-Login, so just return None
     return None
 
 @app.template_filter('datetimeformat')
@@ -28,7 +27,7 @@ def datetimeformat(value):
     except:
         return value
 
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024 # 100MB max
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = True
@@ -85,10 +84,22 @@ def init_db():
     conn.commit()
     conn.close()
 
+def make_admin():
+    conn = get_db(); c = conn.cursor()
+    # Create admin if doesn't exist
+    c.execute("SELECT 1 FROM users WHERE username=%s", (ADMIN_USERNAME,))
+    if not c.fetchone():
+        print(f"Admin user {ADMIN_USERNAME} not found. Create it via /signup first")
+    else:
+        c.execute("UPDATE users SET is_admin=TRUE WHERE username=%s", (ADMIN_USERNAME,))
+        print(f"ADMIN PROMOTED: {ADMIN_USERNAME}")
+    conn.commit(); conn.close()
+
 @app.before_request
 def startup():
     if not hasattr(app, 'db_initialized'):
         init_db()
+        make_admin()
         app.db_initialized = True
         print("DB INITIALIZED SUCCESSFULLY")
 
@@ -111,8 +122,13 @@ def signup():
             c.execute("INSERT INTO users (username,password_hash,email,dob,region) VALUES (%s,%s,%s,%s,%s)",
                 (request.form['username'], generate_password_hash(request.form['password']), request.form['email'], request.form['dob'], request.form['region']))
             conn.commit()
-        except: flash('Username or Email exists'); conn.close(); return redirect('/signup')
-        conn.close(); flash('Account created!'); return redirect('/login')
+            flash('Account created! Please login.', 'success')
+            return redirect('/login')
+        except Exception as e:
+            flash('Username or Email already exists')
+            return redirect('/signup')
+        finally:
+            conn.close()
     return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -126,6 +142,7 @@ def login():
             session['username'] = user['username']
             session['is_admin'] = user['is_admin']
             session['profile_pic'] = user['profile_pic']
+            flash(f'Welcome back {user["username"]}!')
             return redirect('/')
         flash('Invalid login')
     return render_template('login.html')
@@ -478,6 +495,7 @@ def view_story(story_id):
 # Initialize DB on startup for Render
 with app.app_context():
     init_db()
+    make_admin()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
