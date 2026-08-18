@@ -12,7 +12,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024 # Lowered to 50MB for speed
 app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = True
@@ -38,6 +38,9 @@ FILTERS = ['None', 'Grayscale', 'Sepia', 'Blur', 'Bright']
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXT
+
+def clean_username(name): # NEW: stops " User" vs "User" bug
+    return name.strip()
 
 class User(UserMixin):
     def __init__(self, id, username, is_admin=False, profile_pic=None):
@@ -120,10 +123,11 @@ def create_notification(username, actor, type, target_id, message):
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
+        username = clean_username(request.form['username']) # FIXED
         conn = get_db(); c = conn.cursor()
         try:
             c.execute("INSERT INTO users (username,password_hash,email,dob,region) VALUES (%s,%s,%s,%s,%s)",
-                (request.form['username'], generate_password_hash(request.form['password']), request.form['email'], request.form['dob'], request.form['region']))
+                (username, generate_password_hash(request.form['password']), request.form['email'], request.form['dob'], request.form['region']))
             conn.commit()
             flash('Account created! Please login.', 'success')
             return redirect('/login')
@@ -137,8 +141,9 @@ def signup():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        username = clean_username(request.form['username']) # FIXED
         conn = get_db(); c = conn.cursor()
-        c.execute("SELECT * FROM users WHERE username=%s", (request.form['username'],))
+        c.execute("SELECT * FROM users WHERE username=%s", (username,))
         user = c.fetchone(); conn.close()
         if user and check_password_hash(user['password_hash'], request.form['password']):
             if user['banned']: flash('You are banned'); return redirect('/login')
@@ -214,22 +219,37 @@ def follow(username):
         create_notification(username, current_user.username, 'follow', 0, f'{current_user.username} started following you')
     conn.commit(); conn.close(); return redirect(f'/profile/{username}')
 
+# ===== FIXED UPLOAD ROUTE =====
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
     if request.method == 'POST':
         file = request.files.get('video')
         caption = request.form.get('caption', '')
-        if file and allowed_file(file.filename):
-            upload_result = cloudinary.uploader.upload(file, resource_type="video", folder="minitik_videos")
-            video_url = upload_result['secure_url']
+        filter_choice = request.form.get('filter', 'None')
+
+        if not file or not allowed_file(file.filename):
+            flash('Invalid file type')
+            return render_template('upload.html', filters=FILTERS)
+
+        try:
+            ext = file.filename.rsplit('.', 1)[1].lower()
+            resource_type = "video" if ext in ['mp4', 'mov', 'avi'] else "image"
+
+            upload_result = cloudinary.uploader.upload(file, resource_type=resource_type, folder="minitik_videos")
+            file_url = upload_result['secure_url']
+
             conn = get_db(); c = conn.cursor()
-            c.execute("INSERT INTO videos (username, video, caption, timestamp) VALUES (%s,%s,%s,%s)",
-                      (current_user.username, video_url, caption, time.time()))
+            c.execute("INSERT INTO videos (username, video, caption, timestamp, filter, type) VALUES (%s,%s,%s,%s,%s,%s)",
+                      (current_user.username, file_url, caption, time.time(), filter_choice, resource_type))
             conn.commit(); conn.close()
-            flash('Video uploaded!')
+            flash('Posted!')
             return redirect('/')
-    return render_template('upload.html')
+        except Exception as e:
+            flash(f'Upload failed: {str(e)}')
+
+    return render_template('upload.html', filters=FILTERS) # THIS FIXES 500
+# ===== END FIXED UPLOAD =====
 
 @app.route('/story/upload', methods=['GET', 'POST'])
 @login_required
@@ -266,7 +286,7 @@ def like(video_id):
     conn = get_db(); c = conn.cursor()
     c.execute("SELECT 1 FROM likes WHERE video_id=%s AND username=%s", (video_id, current_user.username))
     liked = c.fetchone()
-    
+
     if liked:
         c.execute("DELETE FROM likes WHERE video_id=%s AND username=%s", (video_id, current_user.username))
         c.execute("UPDATE videos SET likes = likes - 1 WHERE id=%s", (video_id,))
@@ -276,7 +296,7 @@ def like(video_id):
         c.execute("SELECT username FROM videos WHERE id=%s", (video_id,))
         owner = c.fetchone()['username']
         create_notification(owner, current_user.username, 'like', video_id, f'{current_user.username} liked your video')
-    
+
     conn.commit(); conn.close()
     return redirect(request.referrer or '/')
 
@@ -306,13 +326,17 @@ def search():
     conn.close()
     return render_template('search.html', q=q, users=users, videos=videos)
 
-@app.route('/dm')
 @app.route('/dm_inbox')
 @login_required
 def dm_inbox():
     conn = get_db(); c = conn.cursor()
-    c.execute("SELECT DISTINCT CASE WHEN sender=%s THEN receiver ELSE sender END as friend FROM messages WHERE sender=%s OR receiver=%s", 
-              (current_user.username, current_user.username, current_user.username))
+    c.execute("""
+        SELECT DISTINCT ON (friend)
+        CASE WHEN sender=%s THEN receiver ELSE sender END as friend,
+        message, timestamp
+        FROM messages WHERE sender=%s OR receiver=%s
+        ORDER BY friend, timestamp DESC
+    """, (current_user.username, current_user.username, current_user.username))
     chats = c.fetchall()
     conn.close()
     return render_template('dm_inbox.html', chats=chats)
@@ -320,6 +344,7 @@ def dm_inbox():
 @app.route('/dm/<username>', methods=['GET', 'POST'])
 @login_required
 def dm_chat(username):
+    username = clean_username(username) # FIXED
     if request.method == 'POST':
         msg = request.form['message']
         if msg.strip():
@@ -329,7 +354,7 @@ def dm_chat(username):
             create_notification(username, current_user.username, 'message', 0, f'{current_user.username} sent you a message')
             conn.commit(); conn.close()
         return redirect(f'/dm/{username}')
-    
+
     conn = get_db(); c = conn.cursor()
     c.execute("SELECT * FROM messages WHERE (sender=%s AND receiver=%s) OR (sender=%s AND receiver=%s) ORDER BY timestamp",
               (current_user.username, username, username, current_user.username))
@@ -341,7 +366,7 @@ def dm_chat(username):
 @login_required
 def friends():
     conn = get_db(); c = conn.cursor()
-    c.execute("SELECT user2 as friend FROM friends WHERE user1=%s UNION SELECT user1 as friend FROM friends WHERE user2=%s", 
+    c.execute("SELECT user2 as friend FROM friends WHERE user1=%s UNION SELECT user1 as friend FROM friends WHERE user2=%s",
               (current_user.username, current_user.username))
     friends = c.fetchall()
     conn.close()
