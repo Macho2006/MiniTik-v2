@@ -47,6 +47,15 @@ def get_db():
 def init_db():
     conn = get_db()
     c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS messages
+             (id INTEGER PRIMARY KEY, 
+              sender_id INTEGER, 
+              receiver_id INTEGER, 
+              message TEXT, 
+              timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+              is_read INTEGER DEFAULT 0,
+              FOREIGN KEY (sender_id) REFERENCES users(id),
+              FOREIGN KEY (receiver_id) REFERENCES users(id))''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS users(
         id SERIAL PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT, email TEXT UNIQUE,
@@ -266,6 +275,49 @@ def dm_inbox():
     chats = c.fetchall()
     conn.close()
     return render_template('dm_inbox.html', chats=chats, current_user=current_user())
+@app.route('/dm/<username>')
+@login_required
+def dm(username):
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    # Get receiver info
+    c.execute("SELECT * FROM users WHERE username = ?", (username,))
+    receiver = c.fetchone()
+    if not receiver: return "User not found", 404
+    
+    # Get chat history
+    c.execute("""SELECT m.*, u.username as sender_name 
+                 FROM messages m JOIN users u ON m.sender_id = u.id
+                 WHERE (sender_id = ? AND receiver_id = ?) 
+                 OR (sender_id = ? AND receiver_id = ?)
+                 ORDER BY timestamp ASC""", 
+              (session['user_id'], receiver['id'], receiver['id'], session['user_id']))
+    messages = c.fetchall()
+    
+    # Mark as read
+    c.execute("UPDATE messages SET is_read = 1 WHERE receiver_id = ? AND sender_id = ?", 
+              (session['user_id'], receiver['id']))
+    conn.commit()
+    conn.close()
+    
+    return render_template('dm.html', receiver=receiver, messages=messages)
+
+@app.route('/send_message', methods=['POST'])
+@login_required
+def send_message():
+    receiver_id = request.form['receiver_id']
+    message = request.form['message']
+    if message.strip() == "": return redirect(request.referrer)
+    
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)",
+              (session['user_id'], receiver_id, message))
+    conn.commit()
+    conn.close()
+    
+    return redirect(request.referrer)
 
 @app.route('/dm/<username>', methods=['GET', 'POST'])
 def dm_chat(username):
