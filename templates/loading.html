@@ -1,14 +1,30 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Loading...</title>
-    <meta http-equiv="refresh" content="2; url=/" />
-    <style>
-        body {text-align:center; font-family:Arial; padding-top:100px}
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
+{% block content %}
+<meta http-equiv="refresh" content="2; url=/" />
+<style>
+.loading-container{
+    text-align:center; 
+    padding-top:120px;
+}
+.spinner{
+    border:4px solid #222;
+    border-top:4px solid #ff0050;
+    border-radius:50%;
+    width:60px;
+    height:60px;
+    animation:spin 1s linear infinite;
+    margin:0 auto 20px;
+}
+@keyframes spin{
+    0%{transform:rotate(0deg)}
+    100%{transform:rotate(360deg)}
+}
+.loading-container h2{color:#ff0050}
+</style>
+
+<div class="loading-container">
+    <div class="spinner"></div>
     <h2>Uploading...</h2>
-    <p>Redirecting to home page</p>
-</body>
-</html>
+    <p style="color:#888">Redirecting to home page</p>
+</div>
+{% endblock %}
