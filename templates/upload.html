@@ -1,27 +1,75 @@
-<!DOCTYPE html>
-<html>
-<head><title>Upload</title>
+{% extends "base.html" %}
+{% block content %}
 <style>
-body{font-family:Arial;background:#000;color:#fff;text-align:center;padding:50px}
-input, textarea, select{width:80%;padding:10px;margin:10px;border-radius:8px;border:none}
-.btn{background:#ff0050;color:#fff;padding:12px 30px;border:none;border-radius:8px;cursor:pointer}
+.upload-container {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+.upload-container h1 {
+    color: #ff0050;
+    margin-bottom: 30px;
+}
+.upload-container input, 
+.upload-container textarea, 
+.upload-container select {
+    width: 80%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: none;
+    background: #222;
+    color: #fff;
+    font-size: 16px;
+}
+.upload-container textarea {
+    height: 80px;
+    resize: none;
+}
+.upload-container label {
+    display: block;
+    margin-top: 15px;
+    color: #00f5d4;
+    font-weight: bold;
+}
+.btn {
+    background: #ff0050;
+    color: #fff;
+    padding: 14px 40px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 20px;
+}
+.btn:hover {
+    background: #e00045;
+}
+.back-link {
+    display: block;
+    margin-top: 20px;
+    color: #00f5d4;
+}
 </style>
-</head>
-<body>
-<h1>Upload Video or Picture</h1>
-<form method="POST" enctype="multipart/form-data">
-    <input type="file" name="file" accept="video/*,image/*" required><br>
-    <textarea name="caption" placeholder="Write a caption..."></textarea><br>
+
+<div class="upload-container">
+    <h1>Upload Video or Picture</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="video" accept="video/*,image/*" required><br>
+        
+        <textarea name="caption" placeholder="Write a caption..."></textarea><br>
+        
+        <label>Choose Filter:</label>
+        <select name="filter">
+            {% for f in filters %}
+            <option value="{{ f }}">{{ f }}</option>
+            {% endfor %}
+        </select><br>
+        
+        <button class="btn" type="submit">Post</button>
+    </form>
     
-    <label>Choose Filter:</label><br>
-    <select name="filter">
-        {% for f in filters %}
-        <option value="{{ f }}">{{ f }}</option>
-        {% endfor %}
-    </select><br>
-    
-    <button class="btn">Post</button>
-</form>
-<a href="/">Back to Home</a>
-</body>
-</html>
+    <a href="/" class="back-link">← Back to Home</a>
+</div>
+{% endblock %}
