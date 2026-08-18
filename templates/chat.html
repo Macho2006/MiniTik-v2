@@ -1,47 +1,47 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Chat with {{ other_user }} - MiniTik</title>
+{% extends "base.html" %}
+{% block content %}
 <style>
-body{background:#000;color:white;font-family:Arial;display:flex;flex-direction:column;height:100vh;margin:0}
+.chat-wrapper{height:calc(100vh - 120px);display:flex;flex-direction:column;max-width:700px;margin:0 auto}
 .header{background:#121212;padding:15px;border-bottom:1px solid #222;display:flex;align-items:center;gap:10px}
 .header a{color:#ff0050;text-decoration:none;font-size:20px}
-.chat-box{flex:1;overflow-y:auto;padding:20px}
+.header b{color:#00f5d4}
+.chat-box{flex:1;overflow-y:auto;padding:20px;background:#000}
 .msg{margin:10px 0;max-width:70%;display:flex;flex-direction:column}
 .msg.me{margin-left:auto;text-align:right;align-items:flex-end}
 .msg.other{text-align:left;align-items:flex-start}
-.bubble{display:inline-block;padding:10px 15px;border-radius:18px;word-wrap:break-word}
-.msg.me .bubble{background:#ff0050;color:white}
-.msg.other .bubble{background:#222;color:white}
-.msg-name{font-size:12px;color:#888;margin-bottom:4px}
+.bubble{display:inline-block;padding:12px 16px;border-radius:18px;word-wrap:break-word;font-size:15px}
+.msg.me .bubble{background:#ff0050;color:white;border-bottom-right-radius:4px}
+.msg.other .bubble{background:#222;color:white;border-bottom-left-radius:4px}
+.msg-name{font-size:11px;color:#888;margin-bottom:4px}
 .input-box{display:flex;padding:15px;background:#121212;border-top:1px solid #222}
-.input-box input{flex:1;padding:10px;border-radius:20px;border:none;background:#222;color:white;outline:none}
+.input-box input{flex:1;padding:12px;border-radius:20px;border:none;background:#222;color:white;outline:none}
 .input-box button{padding:10px 20px;margin-left:10px;background:#ff0050;border:none;border-radius:20px;color:white;cursor:pointer;font-weight:bold}
+.input-box button:hover{background:#e00045}
 </style>
-</head>
-<body>
-<div class="header">
-<a href="/dm">←</a> 
-<b>{{ other_user }}</b> 
-{% if other_user in users and users[other_user].get('verified') %}✓{% endif %}
-</div>
 
-<div class="chat-box">
-{% if messages %}
-    {% for m in messages %}
-    <div class="msg {% if m.from == current_user %}me{% else %}other{% endif %}">
-        <span class="msg-name">{{ m.from }}</span>
-        <div class="bubble">{{ m.text }}</div>
+<div class="chat-wrapper">
+    <div class="header">
+        <a href="/dm_inbox">←</a> 
+        <b>{{ other_user }}</b> 
+        {% if other_user in users and users[other_user].get('verified') %}✓{% endif %}
     </div>
-    {% endfor %}
-{% else %}
-<p style="text-align:center;color:#888">No messages yet. Say hi!</p>
-{% endif %}
-</div>
 
-<form action="/dm/send/{{ other_user }}" method="POST" class="input-box">
-<input type="text" name="message" placeholder="Type a message..." required autocomplete="off">
-<button type="submit">Send</button>
-</form>
-</body>
-</html>
+    <div class="chat-box">
+    {% if messages %}
+        {% for m in messages %}
+        <div class="msg {% if m.from == current_user.username %}me{% else %}other{% endif %}">
+            <span class="msg-name">{{ m.from }}</span>
+            <div class="bubble">{{ m.text }}</div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="text-align:center;color:#888;margin-top:50px">No messages yet. Say hi!</p>
+    {% endif %}
+    </div>
+
+    <form action="/dm/send/{{ other_user }}" method="POST" class="input-box">
+        <input type="text" name="message" placeholder="Type a message..." required autocomplete="off">
+        <button type="submit">Send</button>
+    </form>
+</div>
+{% endblock %}
