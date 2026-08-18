@@ -337,9 +337,16 @@ def admin_panel():
     users = c.fetchall()
     c.execute("SELECT * FROM videos ORDER BY timestamp DESC")
     videos = c.fetchall()
+    
+    # ADD THIS - FIXES THE CRASH
+    stats = {
+        'total_users': len(users),
+        'total_videos': len(videos),
+        'total_banned': len([u for u in users if u['banned']])
+    }
+    
     conn.close()
-    return render_template('admin.html', users=users, videos=videos, current_user=current_user()) # ADDED current_user
-
+    return render_template('admin.html', users=users, videos=videos, stats=stats, current_user=session['username'])
 @app.route('/admin/ban/<username>')
 def admin_ban(username):
     if not session.get('is_admin'): return "Nope", 403
