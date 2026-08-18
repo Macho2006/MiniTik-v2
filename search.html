@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.search-container { max-width: 700px; margin: 30px auto; padding: 20px; }
+.search-bar { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #222; color: #fff; font-size: 16px; margin-bottom: 30px; }
+.user-card, .video-card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; align-items: center; gap: 15px; }
+.user-card img, .video-card img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
+.video-card img { width: 80px; height: 80px; border-radius: 8px; }
+.user-card a, .video-card a { color: #00f5d4; text-decoration: none; font-weight: bold; }
+h2 { color: #ff0050; }
+</style>
+
+<div class="search-container">
+    <h2>Search: "{{ q }}"</h2>
+    
+    <form method="GET" action="/search">
+        <input type="text" name="q" value="{{ q }}" placeholder="Search users or videos..." class="search-bar">
+    </form>
+
+    <h3 style="color:#00f5d4">Users</h3>
+    {% if users %}
+        {% for user in users %}
+        <div class="user-card">
+            <img src="{{ user.profile_pic }}">
+            <a href="/profile/{{ user.username }}">@{{ user.username }}</a>
+            {% if user.verified %}<span style="color:#00f5d4">✓</span>{% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No users found</p>
+    {% endif %}
+
+    <h3 style="color:#00f5d4; margin-top:30px">Videos</h3>
+    {% if videos %}
+        {% for video in videos %}
+        <div class="video-card">
+            <img src="{{ video.video }}?resource_type=video&e_preview">
+            <div>
+                <a href="/profile/{{ video.username }}">@{{ video.username }}</a>
+                <p>{{ video.caption }}</p>
+                <p style="color:#888">{{ video.likes }} likes</p>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No videos found</p>
+    {% endif %}
+
+</div>
+{% endblock %}
