@@ -475,5 +475,9 @@ def view_story(story_id):
     conn.close()
     return render_template('view_story.html', story=story)
 
+# Initialize DB on startup for Render
+with app.app_context():
+    init_db()
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
