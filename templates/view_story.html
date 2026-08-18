@@ -1,5 +1,85 @@
-<!DOCTYPE html><html><head><title>Story</title><style>body{background:#000;margin:0}</style></head><body>
-{% if story %}<video src="{{ story.video }}" autoplay style="width:100%;height:100vh;object-fit:contain"></video>
-<div style="position:absolute;top:20px;left:20px;display:flex;align-items:center;gap:10px;color:#fff">
-<img src="{{ story.profile_pic }}" style="width:40px;height:40px;border-radius:50%"><b>{{ story.username }}</b></div>{% endif %}
-<a href="/" style="position:absolute;top:20px;right:20px;color:#fff;font-size:30px">X</a></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Story - {{ story.username }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{background:#000;margin:0;overflow:hidden;font-family:Arial}
+.story-wrapper{width:100%;height:100vh;position:relative;background:#000}
+.story-media{width:100%;height:100%;object-fit:contain}
+.progress-bar{display:flex;gap:3px;position:absolute;top:10px;left:10px;right:10px;z-index:10}
+.progress{flex:1;height:3px;background:#444;border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:#fff;width:0%;transition:width 0.1s linear}
+.header{position:absolute;top:25px;left:15px;display:flex;align-items:center;gap:10px;color:#fff;z-index:10}
+.avatar{width:40px;height:40px;border-radius:50%;border:2px solid #ff0050}
+.close{position:absolute;top:20px;right:20px;color:#fff;font-size:30px;text-decoration:none;z-index:10}
+.tap-area{position:absolute;top:0;left:0;width:50%;height:100%;z-index:5}
+.tap-area.right{left:50%}
+.username{font-weight:bold}
+.time{font-size:12px;color:#ccc}
+</style>
+</head>
+<body>
+{% if story %}
+<div class="story-wrapper">
+    <!-- Progress Bar -->
+    <div class="progress-bar">
+        <div class="progress"><div class="progress-fill" id="progress"></div></div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <img src="{{ story.profile_pic if story.profile_pic else '/static/default.jpg' }}" class="avatar">
+        <div>
+            <div class="username">{{ story.username }}</div>
+            <div class="time">{{ story.timestamp if story.timestamp else 'Just now' }}</div>
+        </div>
+    </div>
+
+    <!-- Media -->
+    {% if story.type == 'image' %}
+        <img src="{{ story.video }}" class="story-media" id="media">
+    {% else %}
+        <video src="{{ story.video }}" class="story-media" id="media" autoplay muted></video>
+    {% endif %}
+
+    <!-- Tap areas -->
+    <div class="tap-area" onclick="prevStory()"></div>
+    <div class="tap-area right" onclick="nextStory()"></div>
+
+    <a href="/stories" class="close">×</a>
+</div>
+
+<script>
+let duration = 5000; // 5 seconds for images
+const media = document.getElementById('media');
+const progress = document.getElementById('progress');
+let startTime = Date.now();
+
+if(media.tagName === 'VIDEO'){
+    media.onloadedmetadata = () => { duration = media.duration * 1000 }
+    media.play();
+}
+
+function updateProgress(){
+    let elapsed = Date.now() - startTime;
+    let percent = (elapsed / duration) * 100;
+    progress.style.width = percent + '%';
+    if(percent >= 100){
+        nextStory();
+    } else {
+        requestAnimationFrame(updateProgress);
+    }
+}
+updateProgress();
+
+function nextStory(){
+    window.location.href = "/story/{{ next_id if next_id else '' }}";
+}
+function prevStory(){
+    window.location.href = "/story/{{ prev_id if prev_id else '' }}";
+}
+</script>
+{% endif %}
+</body>
+</html>
