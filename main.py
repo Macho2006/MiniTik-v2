@@ -324,20 +324,39 @@ def delete_post(post_id):
 def admin_panel():
     if 'username' not in session: return redirect('/login')
     if not session.get('is_admin'): return "Access Denied CEO Only", 403
+    
     conn = get_db(); c = conn.cursor()
+    
+    # Get all users
     c.execute("SELECT id, username, verified, banned, followers, total_likes, profile_pic FROM users ORDER BY id DESC")
     users = c.fetchall()
+    
+    # Get all videos
     c.execute("SELECT * FROM videos ORDER BY timestamp DESC")
     videos = c.fetchall()
     
-    # ADD THIS - FIXES THE CRASH
-    stats = {
-        'total_users': len(users),
-        'total_videos': len(videos),
-        'total_banned': len([u for u in users if u['banned']])
-    }
+    # Get stats
+    c.execute("SELECT COUNT(*) as count FROM users")
+    total_users = c.fetchone()['count']
+    
+    c.execute("SELECT COUNT(*) as count FROM videos")
+    total_videos = c.fetchone()['count']
+    
+    c.execute("SELECT COUNT(*) as count FROM users WHERE banned = 1")
+    total_banned = c.fetchone()['count']
+    
+    c.execute("SELECT COUNT(*) as count FROM users WHERE DATE(created_at) = CURDATE()")
+    new_today = c.fetchone()['count']
     
     conn.close()
+    
+    stats = {
+        'total_users': total_users,
+        'total_videos': total_videos,
+        'total_banned': total_banned,
+        'new_today': new_today
+    }
+    
     return render_template('admin.html', users=users, videos=videos, stats=stats, current_user=session['username'])
 @app.route('/admin/ban/<username>')
 def admin_ban(username):
