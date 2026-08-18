@@ -345,8 +345,8 @@ def admin_panel():
     c.execute("SELECT COUNT(*) as count FROM users WHERE banned = 1")
     total_banned = c.fetchone()['count']
     
-    c.execute("SELECT COUNT(*) as count FROM users WHERE DATE(created_at) = CURDATE()")
-    new_today = c.fetchone()['count']
+        # TEMP: Set new_today to 0 until we add created_at column
+    new_today = 0
     
     conn.close()
     
