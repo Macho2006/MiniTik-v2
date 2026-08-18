@@ -205,7 +205,135 @@ def follow(username):
         create_notification(username, current_user.username, 'follow', 0, f'{current_user.username} started following you')
     conn.commit(); conn.close(); return redirect(f'/profile/{username}')
 
-#... ALL OTHER ROUTES ARE THE SAME JUST WITH current_user.username INSTEAD OF session['username']
+# ===== ALL MISSING ROUTES ADDED BELOW =====
+@app.route('/upload', methods=['GET', 'POST'])
+@login_required
+def upload():
+    if request.method == 'POST':
+        file = request.files.get('video')
+        caption = request.form.get('caption', '')
+        if file and allowed_file(file.filename):
+            upload_result = cloudinary.uploader.upload(file, resource_type="video", folder="minitik_videos")
+            video_url = upload_result['secure_url']
+            conn = get_db(); c = conn.cursor()
+            c.execute("INSERT INTO videos (username, video, caption, timestamp) VALUES (%s,%s,%s,%s)",
+                      (current_user.username, video_url, caption, time.time()))
+            conn.commit(); conn.close()
+            flash('Video uploaded!')
+            return redirect('/')
+    return render_template('upload.html')
+
+@app.route('/story/upload', methods=['GET', 'POST'])
+@login_required
+def story_upload():
+    if request.method == 'POST':
+        file = request.files.get('story')
+        if file and allowed_file(file.filename):
+            upload_result = cloudinary.uploader.upload(file, resource_type="video", folder="minitik_stories")
+            story_url = upload_result['secure_url']
+            conn = get_db(); c = conn.cursor()
+            c.execute("INSERT INTO stories (username, video, timestamp) VALUES (%s,%s,%s)",
+                      (current_user.username, story_url, time.time()))
+            conn.commit(); conn.close()
+            flash('Story posted!')
+            return redirect('/')
+    return render_template('story_upload.html')
+
+@app.route('/search')
+@login_required
+def search():
+    q = request.args.get('q', '')
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username ILIKE %s LIMIT 10", (f'%{q}%',))
+    users = c.fetchall()
+    c.execute("SELECT * FROM videos WHERE caption ILIKE %s ORDER BY likes DESC LIMIT 20", (f'%{q}%',))
+    videos = c.fetchall()
+    conn.close()
+    return render_template('search.html', q=q, users=users, videos=videos)
+
+@app.route('/dm')
+@app.route('/dm_inbox')
+@login_required
+def dm_inbox():
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT DISTINCT CASE WHEN sender=%s THEN receiver ELSE sender END as friend FROM messages WHERE sender=%s OR receiver=%s", 
+              (current_user.username, current_user.username, current_user.username))
+    chats = c.fetchall()
+    conn.close()
+    return render_template('dm_inbox.html', chats=chats)
+
+@app.route('/dm/<username>', methods=['GET', 'POST'])
+@login_required
+def dm_chat(username):
+    if request.method == 'POST':
+        msg = request.form['message']
+        conn = get_db(); c = conn.cursor()
+        c.execute("INSERT INTO messages (sender, receiver, message, timestamp) VALUES (%s,%s,%s,%s)",
+                  (current_user.username, username, msg, time.time()))
+        create_notification(username, current_user.username, 'message', 0, f'{current_user.username} sent you a message')
+        conn.commit(); conn.close()
+        return redirect(f'/dm/{username}')
+    
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM messages WHERE (sender=%s AND receiver=%s) OR (sender=%s AND receiver=%s) ORDER BY timestamp",
+              (current_user.username, username, username, current_user.username))
+    messages = c.fetchall()
+    conn.close()
+    return render_template('dm_chat.html', messages=messages, friend=username)
+
+@app.route('/friends')
+@login_required
+def friends():
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT user2 as friend FROM friends WHERE user1=%s UNION SELECT user1 as friend FROM friends WHERE user2=%s", 
+              (current_user.username, current_user.username))
+    friends = c.fetchall()
+    conn.close()
+    return render_template('friends.html', friends=friends)
+
+@app.route('/following')
+@login_required
+def following():
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT u.* FROM users u JOIN following f ON u.username=f.following WHERE f.follower=%s", (current_user.username,))
+    following = c.fetchall()
+    conn.close()
+    return render_template('following.html', users=following)
+
+@app.route('/trending')
+def trending():
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT v.*, u.profile_pic, u.verified FROM videos v JOIN users u ON v.username=u.username ORDER BY likes DESC LIMIT 20")
+    videos = c.fetchall()
+    conn.close()
+    return render_template('trending.html', videos=videos)
+
+@app.route('/notifications')
+@login_required
+def notifications():
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM notifications WHERE username=%s ORDER BY timestamp DESC LIMIT 50", (current_user.username,))
+    notifs = c.fetchall()
+    c.execute("UPDATE notifications SET is_read=1 WHERE username=%s", (current_user.username,))
+    conn.commit(); conn.close()
+    return render_template('notifications.html', notifications=notifs)
+
+@app.route('/admin')
+@login_required
+def admin():
+    if not current_user.is_admin:
+        return "Access Denied", 403
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM users ORDER BY id DESC")
+    users = c.fetchall()
+    c.execute("SELECT * FROM videos ORDER BY id DESC LIMIT 50")
+    videos = c.fetchall()
+    c.execute("SELECT * FROM support_tickets ORDER BY timestamp DESC")
+    tickets = c.fetchall()
+    conn.close()
+    return render_template('admin.html', users=users, videos=videos, tickets=tickets)
+
+# ===== END MISSING ROUTES =====
 
 with app.app_context():
     @app.route('/reset_admin')
