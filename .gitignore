@@ -2,4 +2,6 @@ minitik.db
 __pycache__/
 .env
 static/uploads/
-static/stories/v
+static/stories/
+*.pyc
+.DS_Store
