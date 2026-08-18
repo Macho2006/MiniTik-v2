@@ -96,11 +96,18 @@ def make_admin():
         c.execute("UPDATE users SET is_admin=TRUE WHERE username=%s", (ADMIN_USERNAME,))
     conn.commit(); conn.close()
 
+def delete_old_stories():
+    conn = get_db(); c = conn.cursor()
+    twenty_four_hours_ago = time.time() - (24 * 60 * 60)
+    c.execute("DELETE FROM stories WHERE timestamp < %s", (twenty_four_hours_ago,))
+    conn.commit(); conn.close()
+
 @app.before_request
 def startup():
     if not hasattr(app, 'db_initialized'):
         init_db()
         make_admin()
+        delete_old_stories()
         app.db_initialized = True
 
 def create_notification(username, actor, type, target_id, message):
@@ -134,7 +141,7 @@ def login():
         c.execute("SELECT * FROM users WHERE username=%s", (request.form['username'],))
         user = c.fetchone(); conn.close()
         if user and check_password_hash(user['password_hash'], request.form['password']):
-            if user['banned']: flash('Banned'); return redirect('/login')
+            if user['banned']: flash('You are banned'); return redirect('/login')
             user_obj = User(user['id'], user['username'], user['is_admin'], user['profile_pic'])
             login_user(user_obj)
             flash(f'Welcome back {user["username"]}!')
@@ -188,8 +195,10 @@ def profile(username):
         return "User not found", 404
     c.execute("SELECT * FROM videos WHERE username=%s ORDER BY id DESC", (username,))
     videos = c.fetchall()
+    c.execute("SELECT 1 FROM following WHERE follower=%s AND following=%s", (current_user.username, username))
+    is_following = c.fetchone()
     conn.close()
-    return render_template('profile.html', user=user, videos=videos)
+    return render_template('profile.html', user=user, videos=videos, is_following=is_following)
 
 @app.route('/follow/<username>')
 @login_required
@@ -205,7 +214,6 @@ def follow(username):
         create_notification(username, current_user.username, 'follow', 0, f'{current_user.username} started following you')
     conn.commit(); conn.close(); return redirect(f'/profile/{username}')
 
-# ===== ALL MISSING ROUTES ADDED BELOW =====
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
@@ -239,6 +247,53 @@ def story_upload():
             return redirect('/')
     return render_template('story_upload.html')
 
+@app.route('/story/<int:story_id>')
+@login_required
+def view_story(story_id):
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT s.*, u.profile_pic FROM stories s JOIN users u ON s.username=u.username WHERE s.id=%s", (story_id,))
+    story = c.fetchone()
+    c.execute("SELECT id FROM stories WHERE id > %s ORDER BY id ASC LIMIT 1", (story_id,))
+    next_id = c.fetchone()
+    c.execute("SELECT id FROM stories WHERE id < %s ORDER BY id DESC LIMIT 1", (story_id,))
+    prev_id = c.fetchone()
+    conn.close()
+    return render_template('story_view.html', story=story, next_id=next_id['id'] if next_id else None, prev_id=prev_id['id'] if prev_id else None)
+
+@app.route('/like/<int:video_id>')
+@login_required
+def like(video_id):
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT 1 FROM likes WHERE video_id=%s AND username=%s", (video_id, current_user.username))
+    liked = c.fetchone()
+    
+    if liked:
+        c.execute("DELETE FROM likes WHERE video_id=%s AND username=%s", (video_id, current_user.username))
+        c.execute("UPDATE videos SET likes = likes - 1 WHERE id=%s", (video_id,))
+    else:
+        c.execute("INSERT INTO likes VALUES (%s,%s)", (video_id, current_user.username))
+        c.execute("UPDATE videos SET likes = likes + 1 WHERE id=%s", (video_id,))
+        c.execute("SELECT username FROM videos WHERE id=%s", (video_id,))
+        owner = c.fetchone()['username']
+        create_notification(owner, current_user.username, 'like', video_id, f'{current_user.username} liked your video')
+    
+    conn.commit(); conn.close()
+    return redirect(request.referrer or '/')
+
+@app.route('/comment/<int:video_id>', methods=['POST'])
+@login_required
+def comment(video_id):
+    text = request.form['comment']
+    if text.strip():
+        conn = get_db(); c = conn.cursor()
+        c.execute("INSERT INTO comments (video_id, username, comment, timestamp) VALUES (%s,%s,%s,%s)",
+                  (video_id, current_user.username, text, time.time()))
+        c.execute("SELECT username FROM videos WHERE id=%s", (video_id,))
+        owner = c.fetchone()['username']
+        create_notification(owner, current_user.username, 'comment', video_id, f'{current_user.username} commented on your video')
+        conn.commit(); conn.close()
+    return redirect(request.referrer or '/')
+
 @app.route('/search')
 @login_required
 def search():
@@ -267,11 +322,12 @@ def dm_inbox():
 def dm_chat(username):
     if request.method == 'POST':
         msg = request.form['message']
-        conn = get_db(); c = conn.cursor()
-        c.execute("INSERT INTO messages (sender, receiver, message, timestamp) VALUES (%s,%s,%s,%s)",
-                  (current_user.username, username, msg, time.time()))
-        create_notification(username, current_user.username, 'message', 0, f'{current_user.username} sent you a message')
-        conn.commit(); conn.close()
+        if msg.strip():
+            conn = get_db(); c = conn.cursor()
+            c.execute("INSERT INTO messages (sender, receiver, message, timestamp) VALUES (%s,%s,%s,%s)",
+                      (current_user.username, username, msg, time.time()))
+            create_notification(username, current_user.username, 'message', 0, f'{current_user.username} sent you a message')
+            conn.commit(); conn.close()
         return redirect(f'/dm/{username}')
     
     conn = get_db(); c = conn.cursor()
@@ -333,17 +389,45 @@ def admin():
     conn.close()
     return render_template('admin.html', users=users, videos=videos, tickets=tickets)
 
-# ===== END MISSING ROUTES =====
+@app.route('/admin/ban/<username>')
+@login_required
+def ban_user(username):
+    if not current_user.is_admin: return "Access Denied", 403
+    conn = get_db(); c = conn.cursor()
+    c.execute("UPDATE users SET banned=1 WHERE username=%s", (username,))
+    conn.commit(); conn.close()
+    return redirect('/admin')
 
-with app.app_context():
-    @app.route('/reset_admin')
-    def reset_admin():
+@app.route('/admin/delete_video/<int:video_id>')
+@login_required
+def delete_video(video_id):
+    if not current_user.is_admin: return "Access Denied", 403
+    conn = get_db(); c = conn.cursor()
+    c.execute("DELETE FROM videos WHERE id=%s", (video_id,))
+    conn.commit(); conn.close()
+    return redirect('/admin')
+
+@app.route('/support', methods=['GET', 'POST'])
+@login_required
+def support():
+    if request.method == 'POST':
+        issue = request.form['issue']
         conn = get_db(); c = conn.cursor()
-        c.execute("DELETE FROM users WHERE username=%s", (ADMIN_USERNAME,))
-        c.execute("INSERT INTO users (username,password_hash,email,dob,region,is_admin) VALUES (%s,%s,%s,%s,%s,TRUE)",
-            (ADMIN_USERNAME, generate_password_hash('admin123'), 'mocugo2006@gmail.com', '2006-08-21', 'Other'))
+        c.execute("INSERT INTO support_tickets (username, issue, timestamp) VALUES (%s,%s,%s)",
+                  (current_user.username, issue, time.time()))
         conn.commit(); conn.close()
-        return "MachoDev RESET! Username: MachoDev Password: admin123"
+        flash('Ticket submitted!')
+        return redirect('/support')
+    return render_template('support.html')
+
+@app.route('/reset_admin')
+def reset_admin():
+    conn = get_db(); c = conn.cursor()
+    c.execute("DELETE FROM users WHERE username=%s", (ADMIN_USERNAME,))
+    c.execute("INSERT INTO users (username,password_hash,email,dob,region,is_admin) VALUES (%s,%s,%s,%s,%s,TRUE)",
+        (ADMIN_USERNAME, generate_password_hash('admin123'), 'mocugo2006@gmail.com', '2006-08-21', 'Other'))
+    conn.commit(); conn.close()
+    return "MachoDev RESET! Username: MachoDev Password: admin123"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
