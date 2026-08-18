@@ -6,11 +6,15 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask_session import Session
-from flask_login import login_required
+from flask_login import login_required, LoginManager
 import cloudinary, cloudinary.uploader
 from datetime import datetime
 
 app = Flask(__name__)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login' # <-- sends people to /login if not logged in
 
 @app.template_filter('datetimeformat')
 def datetimeformat(value):
