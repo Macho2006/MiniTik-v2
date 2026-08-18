@@ -1,52 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<!-- TABS -->
-<div class="tabs">
-    <a href="/" class="{% if tab == 'foryou' %}active{% endif %}">For You</a>
-    <a href="/following" class="{% if tab == 'following' %}active{% endif %}">Following</a>
-    <a href="/trending" class="{% if tab == 'trending' %}active{% endif %}">Trending</a>
-</div>
+<h1>For You</h1>
 
-<!-- FEED -->
-<div class="container">
 {% if videos %}
     {% for video in videos %}
-    <div class="video-card">
-        <div class="video-header">
-            <a href="/profile/{{ video['username'] }}">@{{ video['username'] }}</a>
-            {% if video['username'] != current_user.username %}
-            <a href="/follow/{{ video['username'] }}">
-                <button class="follow-btn">
-                    {% if video['username'] in following %} Unfollow {% else %} Follow {% endif %}
-                </button>
-            </a>
-            {% endif %}
-        </div>
-
-{% if video['type'] == 'image' %}
-    <img src="{{ video['video'] }}">
-{% else %}
-    <video controls src="{{ video['video'] }}"></video>
-{% endif %}
+    <div style="background:#111;padding:15px;margin:20px 0;border-radius:10px">
+        <p><b><a href="/profile/{{ video['username'] }}">@{{ video['username'] }}</a></b></p>
         
-        <p class="caption">{{ video['caption'] }}</p>
-        <p class="filter-tag">Filter: {{ video['filter'] }}</p>
+        {% if video['type'] == 'image' %}
+            <img src="{{ video['video'] }}" style="width:100%;border-radius:10px">
+        {% else %}
+            <video controls src="{{ video['video'] }}" style="width:100%;border-radius:10px"></video>
+        {% endif %}
 
-        <div class="actions">
-            <a href="/like/{{ video['id'] }}">❤️ {{ video['likes'] }}</a>
-            <a href="/comments/{{ video['id'] }}">💬 Comment</a>
-            {% if session.get('is_admin') or video['username'] == current_user.username %}
-            <a href="/delete/{{ video['id'] }}" style="color:red; font-weight:bold;" onclick="return confirm('Delete this post?')">🗑️ Delete</a>
-            {% endif %}
-            <a href="#" onclick="navigator.clipboard.writeText(window.location.origin + '/profile/{{ video['username'] }}')">🔗 Share</a>
-        </div>
+        <p>{{ video['caption'] }}</p>
+        <p style="color:#888;font-size:12px">Filter: {{ video['filter'] }}</p>
+        
+        <a href="/like/{{ video['id'] }}">❤️ {{ video['likes'] }}</a> | 
+        <a href="/comments/{{ video['id'] }}">💬 Comment</a>
     </div>
     {% endfor %}
 {% else %}
-    <div class="empty">
-        <h2>No posts yet</h2>
-        <p><a href="/upload" style="color:#ff0050">Upload the first video or picture!</a></p>
-    </div>
+    <p style="text-align:center;color:#888">No posts yet. <a href="/upload">Upload first!</a></p>
 {% endif %}
-</div>
 {% endblock %}
