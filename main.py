@@ -21,6 +21,7 @@ def datetimeformat(value):
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024 # 100MB max
 app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = True
 Session(app)
 
 cloudinary.config(
