@@ -1,7 +1,38 @@
-<!DOCTYPE html><html><head><title>Stories</title><style>body{background:#000;margin:0;color:#fff}</style></head><body>
-{% for s in stories %}
-<div style="padding:20px;border-bottom:1px solid #333">
-<a href="/story/{{ s.id }}" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff">
-<img src="{{ s.profile_pic }}" style="width:50px;height:50px;border-radius:50%;border:3px solid #ff0050">
-<div><b>{{ s.username }}</b></div></a></div>{% endfor %}
-<a href="/" style="position:fixed;top:20px;right:20px;color:#fff;font-size:30px">X</a></body></html>
+{% extends "base.html" %}
+{% block content %}
+<style>
+.stories-container{max-width:600px;margin:0 auto;padding:20px}
+.page-title{color:#ff0050;text-align:center;margin-bottom:20px}
+.story-item{display:flex;align-items:center;gap:15px;padding:15px;margin:10px 0;background:#111;border-radius:12px;border:1px solid #222;transition:0.2s;text-decoration:none;color:white}
+.story-item:hover{background:#1a1a1a;border-color:#ff0050}
+.story-avatar{width:60px;height:60px;border-radius:50%;border:3px solid #ff0050;object-fit:cover;flex-shrink:0}
+.story-info b{display:block;font-size:16px}
+.story-info span{color:#888;font-size:12px}
+.story-badge{background:#ff0050;color:#000;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:bold;margin-left:5px}
+.empty{text-align:center;color:#888;margin-top:100px}
+.close-btn{position:fixed;top:20px;right:20px;color:#fff;font-size:30px;text-decoration:none;z-index:100}
+</style>
+
+<a href="/" class="close-btn">×</a>
+
+<div class="stories-container">
+    <h1 class="page-title">Stories 🔴</h1>
+
+{% if stories %}
+    {% for s in stories %}
+    <a href="/story/{{ s.id }}" class="story-item">
+        <img src="{{ s.profile_pic if s.profile_pic else '/static/default.jpg' }}" class="story-avatar">
+        <div class="story-info">
+            <b>{{ s.username }} {% if s.get('is_new') %}<span class="story-badge">NEW</span>{% endif %}</b>
+            <span>{{ s.timestamp if s.timestamp else 'Just now' }}</span>
+        </div>
+    </a>
+    {% endfor %}
+{% else %}
+    <div class="empty">
+        <h3>No stories yet</h3>
+        <p>Follow people to see their stories here</p>
+    </div>
+{% endif %}
+</div>
+{% endblock %}
