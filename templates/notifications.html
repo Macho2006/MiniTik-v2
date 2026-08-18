@@ -1,34 +1,37 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Notifications - MiniTik</title>
+{% extends "base.html" %}
+{% block content %}
 <style>
-body{background:#000;color:white;font-family:Arial;padding:20px}
-a{color:#ff0050;text-decoration:none}
-.notif{background:#121212;padding:15px;margin:10px 0;border-radius:10px;border-left:3px solid #ff0050;display:flex;align-items:center;gap:12px}
-.avatar{width:40px;height:40px;border-radius:50%;object-fit:cover}
+.notif-list{max-width:700px;margin:0 auto}
+.page-title{color:#ff0050;margin-bottom:20px}
+.notif{background:#121212;padding:15px;margin:10px 0;border-radius:10px;border-left:3px solid #ff0050;display:flex;align-items:center;gap:12px;transition:0.2s}
+.notif:hover{background:#1a1a1a}
+.avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;background:#222}
 .username{font-weight:bold;color:#ff0050}
 .time{font-size:12px;color:#888}
-.unread{border-left:3px solid #00f2ea}
+.unread{border-left:3px solid #00f2ea;background:#0f1a1a}
+.empty{text-align:center;color:#888;margin-top:100px}
 </style>
-</head>
-<body>
-<a href="/">← Back</a>
-<h1>Notifications 🔔</h1>
+
+<div class="notif-list">
+    <h1 class="page-title">Notifications 🔔</h1>
 
 {% if notifications %}
   {% for n in notifications %}
-  <div class="notif {% if not n.is_read %}unread{% endif %}">
-    <img src="{{ n.profile_pic }}" class="avatar">
-    <div>
-      <span class="username">{{ n.actor }}</span> {{ n.message }}
-      <div class="time">{{ n.timestamp | int | datetimeformat }}</div>
+  <a href="{{ n.link if n.link else '#' }}" style="text-decoration:none;color:white">
+    <div class="notif {% if not n.is_read %}unread{% endif %}">
+        <img src="{{ n.profile_pic if n.profile_pic else '/static/default.jpg' }}" class="avatar">
+        <div>
+            <span class="username">@{{ n.actor }}</span> {{ n.message }}
+            <div class="time">{{ n.timestamp }}</div>
+        </div>
     </div>
-  </div>
+  </a>
   {% endfor %}
 {% else %}
-  <p>No notifications yet</p>
+  <div class="empty">
+      <h3>No notifications yet</h3>
+      <p>When someone likes or comments, you'll see it here</p>
+  </div>
 {% endif %}
-
-</body>
-</html>
+</div>
+{% endblock %}
