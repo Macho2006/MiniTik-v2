@@ -20,6 +20,11 @@
 
 {% if user.username!= current_user %}
 <a href="/follow/{{ user.username }}"><button class="btn">{% if is_following %}Following{% else %}Follow{% endif %}</button></a>
+    <a href="/dm/{{ user['username'] }}">
+    <button style="background:#ff0066; color:white; padding:8px 16px; border:none; border-radius:8px; margin-left:10px;">
+        Message
+    </button>
+</a>
 <a href="/dm/{{ user['username'] }}"><button>Message</button></a>
 {% endif %}
 <div class="posts">
