@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask_session import Session
+from flask_login import login_required, current_user
 import cloudinary, cloudinary.uploader
 from datetime import datetime
 
