@@ -332,6 +332,32 @@ def dm_chat(username):
     messages = c.fetchall()
     conn.close()
     return render_template('dm_chat.html', messages=messages, chat_with=username, current_user=current_user())
+@app.route('/dm_inbox')
+@login_required
+def dm_inbox():
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    # Get last message from each conversation
+    c.execute("""SELECT DISTINCT u.id, u.username, u.profile_pic,
+                 (SELECT message FROM messages 
+                  WHERE (sender_id = u.id AND receiver_id = ?) 
+                  OR (sender_id = ? AND receiver_id = u.id) 
+                  ORDER BY timestamp DESC LIMIT 1) as last_message,
+                 (SELECT timestamp FROM messages 
+                  WHERE (sender_id = u.id AND receiver_id = ?) 
+                  OR (sender_id = ? AND receiver_id = u.id) 
+                  ORDER BY timestamp DESC LIMIT 1) as last_time
+                 FROM users u
+                 WHERE u.id IN (SELECT DISTINCT sender_id FROM messages WHERE receiver_id = ?
+                                UNION
+                                SELECT DISTINCT receiver_id FROM messages WHERE sender_id = ?)
+                 ORDER BY last_time DESC""",
+              (session['user_id'], session['user_id'], session['user_id'], session['user_id'], session['user_id'], session['user_id']))
+    
+    chats = c.fetchall()
+    conn.close()
+    return render_template('dm_inbox.html', chats=chats)
 
 # ========== FRIENDS ==========
 @app.route('/friends')
