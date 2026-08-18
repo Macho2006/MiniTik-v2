@@ -1,11 +1,28 @@
-<!DOCTYPE html><html><head><title>Sign Up</title>
-<style>body{background:#000;color:white;text-align:center;padding:50px}input,select{padding:10px;margin:8px;width:250px;background:#222;color:white;border:none;border-radius:8px}button{padding:10px 20px;background:#ff0050;border:none;border-radius:8px;color:white;font-weight:bold}</style>
-</head><body>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sign Up</title>
+<style>
+body{background:#000;color:white;text-align:center;padding:50px}
+input,select{padding:10px;margin:8px;width:250px;background:white;color:black;border:none;border-radius:8px;font-size:16px}
+button{padding:10px 20px;background:#ff0050;border:none;border-radius:8px;color:white;font-weight:bold;cursor:pointer}
+button:hover{opacity:0.8}
+</style>
+</head>
+<body>
 <h1>Join MiniTik</h1>
 <form method="POST">
 <input name="username" placeholder="Username" required><br>
 <input name="password" type="password" placeholder="Password" required><br>
 <input name="email" type="email" placeholder="Email/Gmail" required><br>
 <input name="dob" type="date" required><br>
-<select name="region" required><option value="">Select Region</option><option>Lagos</option><option>Abuja</option><option>Other</option></select><br>
-<button>Sign Up</button></form></body></html>
+<select name="region" required>
+    <option value="">Select Region</option>
+    <option>Lagos</option>
+    <option>Abuja</option>
+    <option>Other</option>
+</select><br>
+<button>Sign Up</button>
+</form>
+</body>
+</html>
