@@ -1,83 +1,51 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-.stats-container{display:flex;gap:20px;margin:20px 0;flex-wrap:wrap}
-.stat-box{background:#111;padding:20px;border-radius:10px;text-align:center;flex:1;min-width:200px}
-.stat-box h3{color:#ff0050;margin:0 0 10px 0}
-.stat-box p{font-size:28px;margin:0;font-weight:bold}
-table{width:100%;background:#111;border-collapse:collapse;margin-top:20px}
-th,td{padding:12px;border:1px solid #333;text-align:left}
-th{background:#1a1a1a;color:#00f5d4}
-.btn{padding:8px 14px;border:none;border-radius:5px;color:white;text-decoration:none;margin:2px;display:inline-block;font-size:14px}
-.btn.green{background:#00f2ea;color:#000;font-weight:bold}
-.btn.red{background:#ff0050}
-.back{color:#ff0050;text-decoration:none;margin-bottom:10px;display:inline-block}
+table { width:100%; border-collapse: collapse; margin:20px 0; background:#111; }
+th,td { padding:10px; border:1px solid #333; text-align:left; }
+th { background:#ff0050; color:#fff; }
+a.btn { background:#ff0050; padding:5px 10px; border-radius:6px; color:#fff; text-decoration:none; }
 </style>
 
-<a href="/" class="back">← Back to Home</a>
-<h1>Admin Panel</h1>
+<h2 style="color:#ff0050">Admin Dashboard</h2>
 
-<div class="stats-container">
-    <div class="stat-box">
-        <h3>Total Users</h3>
-        <p>{{ stats.total_users }}</p>
-    </div>
-    <div class="stat-box">
-        <h3>Total Posts</h3>
-        <p>{{ stats.total_videos }}</p>
-    </div>
-    <div class="stat-box">
-        <h3>New Today</h3>
-        <p>{{ stats.new_today }}</p>
-    </div>
-    <div class="stat-box">
-        <h3>Banned</h3>
-        <p>{{ stats.total_banned }}</p>
-    </div>
-</div>
-
-<h2>Manage Users</h2>
+<h3>Users</h3>
 <table>
+<tr><th>ID</th><th>Username</th><th>Email</th><th>Banned</th><th>Action</th></tr>
+{% for u in users %}
 <tr>
-  <th>Username</th>
-  <th>Followers</th>
-  <th>Verified</th>
-  <th>Banned</th>
-  <th>Actions</th>
-</tr>
-
-{% for user in users %}
-<tr>
-  <td>{{ user.username }} {% if user.verified %}✓{% endif %}</td>
-  <td>{{ user.followers }}</td>
-  <td>{{ 'Yes' if user.verified else 'No' }}</td>
-  <td>{{ 'Yes' if user.banned else 'No' }}</td>
-<td>
-    {% if user.verified %}
-        <a href="/admin/unverify/{{ user.username|urlencode }}" class="btn red">Unverify</a>
-    {% else %}
-        <a href="/admin/verify/{{ user.username|urlencode }}" class="btn green">Verify</a>
-    {% endif %}
-    
-    {% if not user.banned %}
-        <a href="/admin/ban/{{ user.username|urlencode }}" class="btn red">Ban</a>
-    {% endif %}
-</td>
+<td>{{u.id}}</td>
+<td>@{{u.username}}</td>
+<td>{{u.email}}</td>
+<td>{{'Yes' if u.banned else 'No'}}</td>
+<td><a class="btn" href="/admin/ban/{{u.username}}">Ban</a></td>
 </tr>
 {% endfor %}
 </table>
 
-<br><br>
-<h2>Manage Posts</h2>
+<h3>Recent Videos</h3>
 <table>
-<tr><th>ID</th><th>User</th><th>Caption</th><th>Likes</th><th>Actions</th></tr>
-{% for video in videos %}
+<tr><th>ID</th><th>User</th><th>Caption</th><th>Likes</th><th>Action</th></tr>
+{% for v in videos %}
 <tr>
-  <td>{{ video.id }}</td>
-  <td>{{ video.username }}</td>
-  <td>{{ video.caption[:50] }}...</td>
-  <td>{{ video.likes }}</td>
-  <td><a href="/admin/delete_post/{{ video.id }}" class="btn red">Delete</a></td>
+<td>{{v.id}}</td>
+<td>@{{v.username}}</td>
+<td>{{v.caption[:50]}}</td>
+<td>{{v.likes}}</td>
+<td><a class="btn" href="/admin/delete_video/{{v.id}}">Delete</a></td>
+</tr>
+{% endfor %}
+</table>
+
+<h3>Support Tickets</h3>
+<table>
+<tr><th>ID</th><th>User</th><th>Issue</th><th>Status</th></tr>
+{% for t in tickets %}
+<tr>
+<td>{{t.id}}</td>
+<td>@{{t.username}}</td>
+<td>{{t.issue[:50]}}</td>
+<td>{{t.status}}</td>
 </tr>
 {% endfor %}
 </table>
