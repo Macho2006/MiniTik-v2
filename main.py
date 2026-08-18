@@ -16,6 +16,11 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login' # <-- sends people to /login if not logged in
 
+@login_manager.user_loader
+def load_user(user_id):
+    # We use session instead of Flask-Login, so just return None
+    return None
+
 @app.template_filter('datetimeformat')
 def datetimeformat(value):
     try:
