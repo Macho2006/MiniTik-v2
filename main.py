@@ -71,6 +71,14 @@ def init_db():
     conn.commit()
     conn.close()
 
+@app.route('/debug-whoami')
+def debug_whoami():
+    if 'username' not in session: return "Not logged in"
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT username, is_admin FROM users WHERE username = %s", (session['username'],))
+    user = c.fetchone()
+    conn.close()
+    return f"Logged in as: {user['username']} | DB is_admin = {user['is_admin']} | Session is_admin = {session.get('is_admin')}"
 @app.before_request
 def startup():
     if not hasattr(app, 'db_initialized'):
