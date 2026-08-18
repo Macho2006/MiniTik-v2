@@ -1,38 +1,29 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>DM - MiniTik</title>
+{% extends "base.html" %}
+{% block content %}
 <style>
-body{background:#000;color:white;font-family:Arial;margin:0}
-.header{background:#121212;padding:15px;border-bottom:1px solid #222;display:flex;align-items:center;gap:15px}
-.header a{color:#ff0050;text-decoration:none;font-weight:bold}
-h2{margin:0}
-.container{padding:20px}
-.user-box{display:flex;align-items:center;padding:15px;margin:10px 0;background:#121212;border-radius:12px;text-decoration:none;color:white;border:1px solid #222}
-.user-box:hover{background:#1a1a1a}
-.avatar{width:50px;height:50px;border-radius:50%;background:#ff0050;margin-right:15px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px}
+.container{padding:20px;max-width:700px;margin:0 auto}
+.header-title{color:#ff0050;margin-bottom:20px;font-size:24px}
+.user-box{display:flex;align-items:center;padding:15px;margin:10px 0;background:#121212;border-radius:12px;text-decoration:none;color:white;border:1px solid #222;transition:0.2s}
+.user-box:hover{background:#1a1a1a;border-color:#ff0050}
+.avatar{width:50px;height:50px;border-radius:50%;background:#ff0050;margin-right:15px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px;color:#000}
+.verified{color:#00f5d4;margin-left:5px}
 </style>
-</head>
-<body>
-<div class="header">
-<a href="/feed">← Back to Feed</a>
-<h2>Messages</h2>
-</div>
 
 <div class="container">
-{% if users_list %}
-    {% for u in users_list %}
-    <a href="/dm/{{ u }}" class="user-box">
-        <div class="avatar">{{ u[0]|upper }}</div>
-        <div>
-            <b>{{ u }}</b>
-            {% if u in users and users[u].get('verified') %} ✓{% endif %}
-        </div>
-    </a>
-    {% endfor %}
-{% else %}
-    <p style="text-align:center;color:#888">No messages yet. Go follow someone and DM them!</p>
-{% endif %}
+    <h2 class="header-title">Messages</h2>
+
+    {% if users_list %}
+        {% for u in users_list %}
+        <a href="/dm_chat/{{ u }}" class="user-box">
+            <div class="avatar">{{ u[0]|upper }}</div>
+            <div>
+                <b>{{ u }}</b>
+                {% if u in users and users[u].get('verified') %} <span class="verified">✓</span>{% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <p style="text-align:center;color:#888;margin-top:50px">No messages yet. Go follow someone and DM them!</p>
+    {% endif %}
 </div>
-</body>
-</html>
+{% endblock %}
