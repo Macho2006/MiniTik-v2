@@ -2,21 +2,33 @@
 <html>
 <head>
     <title>Login - MiniTik</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { background: #000; color: white; font-family: Arial; text-align: center; padding: 50px; }
-        h1 { color: #FF0000; font-size: 35px; text-shadow: 0 0 10px #FF0000; }
-        .box { background: #111; padding: 30px; border-radius: 15px; width: 400px; margin: auto; border: 2px solid #FF0000; box-shadow: 0 0 15px #FF0000; }
-        input { padding: 12px; width: 80%; margin: 10px; border-radius: 8px; border: none; background: #222; color: white; }
-        button { background: #FF0000; color: white; border: none; padding: 12px 30px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #CC0000; box-shadow: 0 0 10px #FF0000; }
-        a { color: #FF0000; text-decoration: none; }
+        body { background: #000; color: white; font-family: Arial; text-align: center; padding: 50px; margin:0 }
+        h1 { color: #ff0050; font-size: 35px; text-shadow: 0 0 10px #ff0050; margin-bottom:10px }
+        .box { background: #111; padding: 30px; border-radius: 15px; width: 90%; max-width:400px; margin: auto; border: 2px solid #ff0050; box-shadow: 0 0 15px #ff0050; }
+        input { padding: 12px; width: 80%; margin: 10px; border-radius: 8px; border: none; background: #222; color: white; outline:none }
+        input:focus{border:1px solid #ff0050}
+        button { background: #ff0050; color: white; border: none; padding: 12px 30px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #e0004f; box-shadow: 0 0 10px #ff0050; }
+        a { color: #ff0050; text-decoration: none; }
         a:hover { text-decoration: underline; }
+        .flash { background: #ff0050; color: #000; padding: 10px; margin: 10px 0; border-radius: 5px; font-weight:bold }
     </style>
 </head>
 <body>
     <h1>🔥 MiniTik 🔥</h1>
     <div class="box">
         <h2>Login</h2>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="flash">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
         <form method="POST">
             <input type="text" name="username" placeholder="Username" required><br>
             <input type="password" name="password" placeholder="Password" required><br>
