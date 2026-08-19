@@ -170,7 +170,6 @@ def login():
             return redirect('/')
         flash('Invalid login')
     return render_template('login.html')
-    # DELETED: broken code that was here
 
 @app.route('/logout')
 @login_required
@@ -203,13 +202,18 @@ def index():
         FROM videos v JOIN users u ON v.username=u.username ORDER BY timestamp DESC
     """)
     videos = c.fetchall()
+
+    # NEW: GET VIDEOS YOU ALREADY LIKED
+    c.execute("SELECT video_id FROM likes WHERE username=%s", (current_user.username,))
+    liked_video_ids = [r['video_id'] for r in c.fetchall()]
+
     twenty_four_hours_ago = time.time() - (24 * 60 * 60)
     c.execute("SELECT DISTINCT ON (s.username) s.*, u.profile_pic FROM stories s JOIN users u ON s.username=u.username WHERE s.timestamp > %s ORDER BY s.username, s.timestamp DESC", (twenty_four_hours_ago,))
     stories = c.fetchall()
     c.execute("SELECT following FROM following WHERE follower=%s", (current_user.username,))
     following = [r['following'] for r in c.fetchall()]
     conn.close()
-    return render_template('index.html', videos=videos, stories=stories, current_user=current_user.username, following=following, tab='foryou')
+    return render_template('index.html', videos=videos, stories=stories, current_user=current_user.username, following=following, liked_video_ids=liked_video_ids, tab='foryou')
 
 @app.route('/following')
 @login_required
@@ -223,11 +227,14 @@ def following_feed(): # Renamed to avoid conflict with /following users list
         ORDER BY timestamp DESC
     """, (current_user.username,))
     videos = c.fetchall()
+    # NEW: GET VIDEOS YOU ALREADY LIKED
+    c.execute("SELECT video_id FROM likes WHERE username=%s", (current_user.username,))
+    liked_video_ids = [r['video_id'] for r in c.fetchall()]
     # NEW: GET FOLLOWING LIST FOR BUTTON STATE
     c.execute("SELECT following FROM following WHERE follower=%s", (current_user.username,))
     following = [r['following'] for r in c.fetchall()]
     conn.close()
-    return render_template('index.html', videos=videos, current_user=current_user.username, following=following, tab='following') # FIXED: added following
+    return render_template('index.html', videos=videos, current_user=current_user.username, following=following, liked_video_ids=liked_video_ids, tab='following')
 
 @app.route('/trending')
 def trending():
@@ -238,13 +245,16 @@ def trending():
         FROM videos v JOIN users u ON v.username=u.username ORDER BY likes DESC LIMIT 20
     """)
     videos = c.fetchall()
-    # NEW: GET FOLLOWING LIST FOR BUTTON STATE
+    # NEW: GET VIDEOS YOU ALREADY LIKED
+    liked_video_ids = []
     following = []
     if current_user.is_authenticated:
+        c.execute("SELECT video_id FROM likes WHERE username=%s", (current_user.username,))
+        liked_video_ids = [r['video_id'] for r in c.fetchall()]
         c.execute("SELECT following FROM following WHERE follower=%s", (current_user.username,))
         following = [r['following'] for r in c.fetchall()]
     conn.close()
-    return render_template('index.html', videos=videos, current_user=current_user.username if current_user.is_authenticated else '', following=following, tab='trending') # FIXED: added following
+    return render_template('index.html', videos=videos, current_user=current_user.username if current_user.is_authenticated else '', following=following, liked_video_ids=liked_video_ids, tab='trending')
 
 @app.route('/profile/<username>')
 @login_required
@@ -324,7 +334,13 @@ def upload():
             ext = file.filename.rsplit('.', 1)[1].lower()
             resource_type = "video" if ext in ['mp4', 'mov', 'avi'] else "image"
 
-            upload_result = cloudinary.uploader.upload(file, resource_type=resource_type, folder="minitik_videos")
+            upload_result = cloudinary.uploader.upload(
+                file,
+                resource_type=resource_type,
+                folder="minitik_videos",
+                quality="auto", # auto compress for speed
+                fetch_format="auto" # webp/mp4
+            )
             file_url = upload_result['secure_url']
 
             conn = get_db(); c = conn.cursor()
@@ -335,16 +351,8 @@ def upload():
             return redirect('/')
         except Exception as e:
             flash(f'Upload failed: {str(e)}')
-            
-upload_result = cloudinary.uploader.upload(
-    file, 
-    resource_type=resource_type, 
-    folder="minitik_videos",
-    quality="auto",  # auto compress
-    fetch_format="auto" # webp/mp4
-)
-    
-    return render_template('upload.html', filters=FILTERS) # THIS FIXES 500
+
+    return render_template('upload.html', filters=FILTERS)
 # ===== END FIXED UPLOAD =====
 
 @app.route('/story/upload', methods=['GET', 'POST'])
@@ -376,6 +384,7 @@ def view_story(story_id):
     conn.close()
     return render_template('story_view.html', story=story, next_id=next_id['id'] if next_id else None, prev_id=prev_id['id'] if prev_id else None)
 
+# ===== FIXED: AJAX LIKE ROUTE =====
 @app.route('/like/<int:video_id>')
 @login_required
 def like(video_id):
@@ -386,15 +395,20 @@ def like(video_id):
     if liked:
         c.execute("DELETE FROM likes WHERE video_id=%s AND username=%s", (video_id, current_user.username))
         c.execute("UPDATE videos SET likes = likes - 1 WHERE id=%s", (video_id,))
+        status = 'unliked'
     else:
         c.execute("INSERT INTO likes VALUES (%s,%s)", (video_id, current_user.username))
         c.execute("UPDATE videos SET likes = likes + 1 WHERE id=%s", (video_id,))
         c.execute("SELECT username FROM videos WHERE id=%s", (video_id,))
         owner = c.fetchone()['username']
         create_notification(owner, current_user.username, 'like', video_id, f'{current_user.username} liked your video')
+        status = 'liked'
 
+    c.execute("SELECT likes FROM videos WHERE id=%s", (video_id,))
+    new_count = c.fetchone()['likes']
     conn.commit(); conn.close()
-    return redirect(request.referrer or '/')
+    return jsonify({'status': status, 'likes': new_count})
+# ===== END FIXED LIKE =====
 
 @app.route('/comment/<int:video_id>', methods=['POST'])
 @login_required
