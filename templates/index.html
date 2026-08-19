@@ -4,22 +4,62 @@
 .video-feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
 .video-item { height: 100vh; scroll-snap-align: start; position: relative; background:#000; display:flex; align-items:center; justify-content:center }
 .video-item video, .video-item img { width: 100%; height: 100%; object-fit: cover; }
-.side-actions { position: absolute; right: 10px; bottom: 100px; display: flex; flex-direction: column; gap: 20px; z-index:2 }
-.action-btn { text-align: center; font-size:12px; color:#fff; cursor:pointer }
-.action-btn img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #fff; object-fit:cover }
+
+/* ===== FIXED: SIDE BUTTONS FOR ALL PHONES ===== */
+.side-actions { 
+    position: absolute; 
+    right: 12px; 
+    bottom: calc(90px + env(safe-area-inset-bottom)); /* KEY FIX: moved up + safe area */
+    display: flex; 
+    flex-direction: column; 
+    gap: 22px; 
+    z-index: 10; /* was 2 */
+    align-items: center;
+}
+.action-btn { 
+    text-align: center; 
+    font-size:12px; 
+    color:#fff; 
+    cursor:pointer;
+    font-weight: 600;
+    text-shadow: 0 0 3px rgba(0,0,0,0.8); /* make text readable */
+}
+.action-btn img { 
+    width: 48px; 
+    height: 48px; 
+    border-radius: 50%; 
+    border: 2px solid #fff; 
+    object-fit:cover 
+}
 
 /* NEW: FOLLOW BUTTON STYLES */
-.follow-btn-side{background:#ff0050;color:#fff;border:none;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold;margin-top:5px;cursor:pointer}
-.follow-btn-side.following{background:#333}
+.follow-btn-side{
+    background:#ff0050;color:#fff;border:none;padding:3px 8px;
+    border-radius:20px;font-size:10px;font-weight:bold;margin-top:4px;
+    cursor:pointer;display:block;width:60px
+}
+.follow-btn-side.following{background:#555}
 .follow-btn-info{background:#ff0050;color:#fff;border:none;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:bold;cursor:pointer;margin-left:10px}
-.follow-btn-info.following{background:#333}
+.follow-btn-info.following{background:#555}
 
 /* NEW: NEW VIDEOS BANNER */
-.new-videos-banner{display:none;background:#ff0050;color:#fff;text-align:center;padding:12px;font-weight:600;position:fixed;top:50px;left:0;right:0;z-index:999;cursor:pointer}
+.new-videos-banner{display:none;background:#ff0050;color:#fff;text-align:center;padding:12px;font-weight:600;position:fixed;top:calc(50px + env(safe-area-inset-top));left:0;right:0;z-index:999;cursor:pointer}
 
-.video-info { position: absolute; bottom: 80px; left: 15px; right: 80px; z-index:2 }
+.video-info { 
+    position: absolute; 
+    bottom: calc(90px + env(safe-area-inset-bottom)); /* KEY FIX: match side buttons */
+    left: 15px; 
+    right: 80px; 
+    z-index:10;
+    color: #fff;
+}
 .video-info .user-row{display:flex;align-items:center}
+.video-info p{ text-shadow: 0 0 3px rgba(0,0,0,0.8); } /* make caption readable */
+
 @media (max-width: 768px) { h1 { display:none } .container { padding:0 } }
+
+/* FIX BODY FOR SAFE AREA */
+body { padding-bottom: env(safe-area-inset-bottom); }
 </style>
 
 <!-- NEW: BANNER FOR NEW VIDEOS -->
