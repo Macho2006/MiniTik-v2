@@ -405,6 +405,37 @@ def dm_inbox():
     conn.close()
     return render_template('dm_inbox.html', chats=chats)
 
+# ===== NEW: COMBINED INBOX ROUTE =====
+@app.route('/inbox')
+@login_required
+def inbox():
+    conn = get_db(); c = conn.cursor()
+
+    # GET CHATS
+    c.execute("""
+        SELECT DISTINCT ON (friend)
+        CASE WHEN sender=%s THEN receiver ELSE sender END as friend,
+        message, timestamp
+        FROM messages WHERE sender=%s OR receiver=%s
+        ORDER BY friend, timestamp DESC
+    """, (current_user.username, current_user.username, current_user.username))
+    chats = c.fetchall()
+
+    # GET NOTIFICATIONS
+    c.execute("SELECT * FROM notifications WHERE username=%s ORDER BY timestamp DESC LIMIT 50", (current_user.username,))
+    notifications = c.fetchall()
+    c.execute("UPDATE notifications SET is_read=1 WHERE username=%s", (current_user.username,))
+
+    conn.commit(); conn.close()
+    return render_template('inbox.html', chats=chats, notifications=notifications, tab='inbox')
+
+# OLD ROUTES: REDIRECT TO INBOX SO LINKS DON'T BREAK
+@app.route('/notifications')
+@login_required
+def notifications_old():
+    return redirect('/inbox?tab=notif')
+# ===== END NEW =====
+
 @app.route('/dm/<username>', methods=['GET', 'POST'])
 @login_required
 def dm_chat(username):
