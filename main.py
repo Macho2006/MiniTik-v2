@@ -236,6 +236,12 @@ def profile(username):
     conn.close()
     return render_template('profile.html', user=user, videos=videos, is_following=is_following, current_user=current_user.username, tab='profile')
 
+# NEW: FIX 404 when user types /profile
+@app.route('/profile')
+@login_required
+def my_profile():
+    return redirect(f'/profile/{current_user.username}')
+
 @app.route('/follow/<username>')
 @login_required
 def follow(username):
@@ -432,7 +438,7 @@ def friends():
 
 @app.route('/following_list') # FIXED: Renamed from /following to avoid conflict
 @login_required
-def following():
+def following_list(): # FIXED: Function name was 'following'
     conn = get_db(); c = conn.cursor()
     c.execute("SELECT u.* FROM users u JOIN following f ON u.username=f.following WHERE f.follower=%s", (current_user.username,))
     following = c.fetchall()
