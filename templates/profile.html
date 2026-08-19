@@ -14,6 +14,7 @@
 .btn:hover{border-color:#ff0050}
 .btn-live{background:#ff0050;border:none}
 .btn-message{background:#ff0050;border:none}
+.btn-logout{background:#ff0050;border:none;width:100%;margin-top:20px}
 .creator-tools{margin:20px 0;padding:15px;background:#111;border-radius:10px}
 .post-card{background:#111;padding:15px;margin:20px 0;border-radius:12px;border:1px solid #222}
 .post-card video,.post-card img{width:100%;max-width:600px;border-radius:10px}
@@ -35,7 +36,7 @@
         
         <p class="meta">📍 {{ user.region if user.region else 'Unknown' }} | 🎂 {{ user.dob if user.dob else 'N/A' }}</p>
 
-        {% if user.username == current_user.username %}
+        {% if user.username == current_user %}
         <div class="creator-tools">
             <h3>Creator Tools</h3>
             {% if user.get('verified') %}
@@ -47,11 +48,13 @@
             <a href="/page/create" class="btn">📄 Create Page</a>
             <a href="/support" class="btn">🛟 Customer Care</a>
         </div>
+        <!-- LOGOUT BUTTON - ONLY SHOWS ON YOUR OWN PROFILE -->
+        <a href="/logout" class="btn btn-logout">🚪 Logout</a>
         {% endif %}
 
-        {% if user.username!= current_user.username %}
+        {% if user.username != current_user %}
         <a href="/follow/{{ user.username }}" class="btn">{% if is_following %}Following{% else %}Follow{% endif %}</a>
-        <a href="/dm_chat/{{ user.username }}" class="btn btn-message">Message</a>
+        <a href="/dm/{{ user.username }}" class="btn btn-message">Message</a>
         {% endif %}
     </div>
 
@@ -73,10 +76,10 @@
                     
                     <div class="actions">
                         <a href="/like/{{ video['id'] }}" style="color:white; text-decoration:none;">❤️ {{ video['likes'] }}</a>
-                        <a href="/comments/{{ video['id'] }}" style="color:white; text-decoration:none;">💬 Comment</a>
+                        <a href="/comments_page/{{ video['id'] }}" style="color:white; text-decoration:none;">💬 Comment</a>
                         
-                        {% if session.get('is_admin') or video['username'] == current_user.username %}
-                        <a href="/delete/{{ video['id'] }}" style="color:red; font-weight:bold;" onclick="return confirm('Delete this post?')">🗑️ Delete</a>
+                        {% if current_user == 'MachoDev' or video['username'] == current_user %}
+                        <a href="/admin/delete_video/{{ video['id'] }}" style="color:red; font-weight:bold;" onclick="return confirm('Delete this post?')">🗑️ Delete</a>
                         {% endif %}
                     </div>
                 </div>
