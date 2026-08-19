@@ -15,15 +15,17 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 
-# ===== FIXED: COOKIE-BASED LOGIN FOR RENDER + ALL PHONES =====
+# ===== FINAL COOKIE FIX FOR RENDER =====
+app.config['SECRET_KEY'] = 'change-this-to-a-random-string'
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
-app.config['REMEMBER_COOKIE_SAMESITE'] = 'None'
+app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember' # ADD THIS
+app.config['SESSION_COOKIE_NAME'] = 'minitik_session' # ADD THIS
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax' # CHANGED FROM None
 app.config['REMEMBER_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # CHANGED FROM None  
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_DOMAIN'] = None
 # ===== END FIX =====
-
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -169,6 +171,10 @@ def login():
             return redirect('/')
         flash('Invalid login')
     return render_template('login.html')
+    login_user(user_obj, remember=True)
+resp = make_response(redirect('/'))
+resp.set_cookie('test', '1', samesite='Lax', secure=True) # force cookie
+return resp
 
 @app.route('/logout')
 @login_required
