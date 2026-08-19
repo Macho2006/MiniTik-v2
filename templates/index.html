@@ -8,10 +8,17 @@
 .action-btn { text-align: center; font-size:12px; color:#fff; cursor:pointer }
 .action-btn img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #fff; object-fit:cover }
 
+/* NEW: FOLLOW BUTTON STYLES */
+.follow-btn-side{background:#ff0050;color:#fff;border:none;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:bold;margin-top:5px;cursor:pointer}
+.follow-btn-side.following{background:#333}
+.follow-btn-info{background:#ff0050;color:#fff;border:none;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:bold;cursor:pointer;margin-left:10px}
+.follow-btn-info.following{background:#333}
+
 /* NEW: NEW VIDEOS BANNER */
 .new-videos-banner{display:none;background:#ff0050;color:#fff;text-align:center;padding:12px;font-weight:600;position:fixed;top:50px;left:0;right:0;z-index:999;cursor:pointer}
 
 .video-info { position: absolute; bottom: 80px; left: 15px; right: 80px; z-index:2 }
+.video-info .user-row{display:flex;align-items:center}
 @media (max-width: 768px) { h1 { display:none } .container { padding:0 } }
 </style>
 
@@ -24,7 +31,17 @@
     <div class="video-item" data-id="{{video['id']}}">
         <!-- YOUR ORIGINAL CARD WRAPPED - KEPT 100% -->
         <div style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
-            <p><b><a href="/profile/{{ video['username'] }}">@{{ video['username'] }}</a></b></p>
+            <div style="display:flex;align-items:center">
+                <p><b><a href="/profile/{{ video['username'] }}">@{{ video['username'] }}</a></b></p>
+                
+                <!-- NEW: FOLLOW BUTTON IN CARD -->
+                {% if video['username'] != current_user %}
+                <button class="follow-btn-info {{ 'following' if video['username'] in following else '' }}" 
+                        onclick="toggleFollow('{{video['username']}}', this)">
+                    {{ 'Following' if video['username'] in following else 'Follow' }}
+                </button>
+                {% endif %}
+            </div>
             
             {% if video['type'] == 'image' %}
                 <img src="{{ video['video'] }}" style="width:100%;border-radius:10px">
@@ -52,6 +69,13 @@
                 <a href="/profile/{{ video['username'] }}">
                     <img src="{{ video['profile_pic']|default('https://i.imgur.com/8Km9tLL.png') }}">
                 </a>
+                <!-- NEW: FOLLOW BUTTON UNDER PFP -->
+                {% if video['username'] != current_user %}
+                <button class="follow-btn-side {{ 'following' if video['username'] in following else '' }}" 
+                        onclick="toggleFollow('{{video['username']}}', this)">
+                    {{ 'Following' if video['username'] in following else 'Follow' }}
+                </button>
+                {% endif %}
             </div>
             <div class="action-btn">
                 <a href="/like/{{ video['id'] }}" style="color:#fff;text-decoration:none">❤️</a><br>
@@ -66,7 +90,16 @@
 
         <!-- BOTTOM INFO -->
         <div class="video-info">
-            <p><b><a href="/profile/{{ video['username'] }}" style="color:#fff">@{{ video['username'] }}</a></b></p>
+            <div class="user-row">
+                <p><b><a href="/profile/{{ video['username'] }}" style="color:#fff">@{{ video['username'] }}</a></b></p>
+                <!-- NEW: FOLLOW BUTTON IN BOTTOM INFO -->
+                {% if video['username'] != current_user %}
+                <button class="follow-btn-info {{ 'following' if video['username'] in following else '' }}" 
+                        onclick="toggleFollow('{{video['username']}}', this)">
+                    {{ 'Following' if video['username'] in following else 'Follow' }}
+                </button>
+                {% endif %}
+            </div>
             <p>{{ video['caption'] }}</p>
         </div>
     </div>
@@ -85,6 +118,23 @@ const currentTab = window.location.pathname.includes('following') ? 'following' 
 
 let lastId = Math.max(0, ...Array.from(document.querySelectorAll('.video-item')).map(v=>parseInt(v.dataset.id)||0));
 let newVideosBuffer = [];
+
+// NEW: AJAX FOLLOW FUNCTION - ADDED
+async function toggleFollow(username, btn){
+    const res = await fetch(`/follow_ajax/${username}`);
+    const data = await res.json();
+    
+    // Update ALL buttons for this username
+    document.querySelectorAll(`button[onclick*="${username}"]`).forEach(b=>{
+        if(data.status == 'followed'){
+            b.innerText = 'Following';
+            b.classList.add('following');
+        } else {
+            b.innerText = 'Follow';
+            b.classList.remove('following');
+        }
+    });
+}
 
 // Auto play/pause videos when scrolling
 const videos = document.querySelectorAll('.video-item video');
@@ -120,13 +170,24 @@ document.getElementById('new-banner').onclick = () => {
         div.className = 'video-item';
         div.dataset.id = v.id;
         
+        const followBtn = v.username != "{{current_user}}" 
+            ? `<button class="follow-btn-info" onclick="toggleFollow('${v.username}', this)">Follow</button>` 
+            : '';
+            
+        const followBtnSide = v.username != "{{current_user}}" 
+            ? `<button class="follow-btn-side" onclick="toggleFollow('${v.username}', this)">Follow</button>` 
+            : '';
+        
         const media = v.type == 'image' 
             ? `<img src="${v.video}" style="filter:blur(20px);opacity:0.3">`
             : `<video src="${v.video}" autoplay loop muted playsinline style="filter:blur(20px);opacity:0.3"></video>`;
             
         div.innerHTML = `
             <div style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
-                <p><b><a href="/profile/${v.username}">@${v.username}</a></b></p>
+                <div style="display:flex;align-items:center">
+                    <p><b><a href="/profile/${v.username}">@${v.username}</a></b></p>
+                    ${followBtn}
+                </div>
                 ${v.type == 'image' ? `<img src="${v.video}" style="width:100%;border-radius:10px">` : `<video src="${v.video}" style="width:100%;border-radius:10px"></video>`}
                 <p>${v.caption}</p>
                 <p style="color:#888;font-size:12px">Filter: ${v.filter}</p>
@@ -134,12 +195,21 @@ document.getElementById('new-banner').onclick = () => {
             </div>
             ${media}
             <div class="side-actions">
-                <div class="action-btn"><a href="/profile/${v.username}"><img src="${v.profile_pic||'https://i.imgur.com/8Km9tLL.png'}"></a></div>
+                <div class="action-btn">
+                    <a href="/profile/${v.username}"><img src="${v.profile_pic||'https://i.imgur.com/8Km9tLL.png'}"></a>
+                    ${followBtnSide}
+                </div>
                 <div class="action-btn"><a href="/like/${v.id}" style="color:#fff;text-decoration:none">❤️</a><br>${v.likes}</div>
                 <div class="action-btn"><a href="/comments_page/${v.id}" style="color:#fff;text-decoration:none">💬</a><br>${v.comment_count||0}</div>
                 <div class="action-btn" onclick="copyLink('${v.id}')">📤<br>Share</div>
             </div>
-            <div class="video-info"><p><b><a href="/profile/${v.username}" style="color:#fff">@${v.username}</a></b></p><p>${v.caption}</p></div>
+            <div class="video-info">
+                <div class="user-row">
+                    <p><b><a href="/profile/${v.username}" style="color:#fff">@${v.username}</a></b></p>
+                    ${followBtn}
+                </div>
+                <p>${v.caption}</p>
+            </div>
         `;
         feed.prepend(div);
         
