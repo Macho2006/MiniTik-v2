@@ -8,14 +8,21 @@ from psycopg2.extras import RealDictCursor
 from flask_session import Session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import cloudinary, cloudinary.uploader
-from datetime import datetime
+from datetime import datetime, timedelta # FIXED: added timedelta
 
 app = Flask(__name__)
 
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024 # Lowered to 50MB for speed
 app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
+
+# ===== FIXED: SESSION CONFIG FOR RENDER HTTPS =====
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30) # NEW: Stay logged in 30 days
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # NEW: Fix for modern browsers
+app.config['SESSION_COOKIE_SECURE'] = True # NEW: Required for https on Render
+# ===== END FIX =====
+
 Session(app)
 
 login_manager = LoginManager()
