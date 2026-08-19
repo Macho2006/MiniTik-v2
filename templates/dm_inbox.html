@@ -1,31 +1,90 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-.chat-list{padding:20px;max-width:700px;margin:0 auto}
-.header-title{color:#ff0050;margin:20px 0;font-size:26px;text-align:center}
+.inbox-wrapper{max-width:700px;margin:0 auto;padding:0}
+.inbox-tabs{display:flex;border-bottom:1px solid #222;background:#000;position:sticky;top:50px;z-index:10}
+.tab-btn{flex:1;padding:15px;background:#000;border:none;color:#888;font-weight:600;font-size:16px;cursor:pointer}
+.tab-btn.active{color:#fff;border-bottom:2px solid #ff0050}
+.tab-content{display:none;padding:20px}
+.tab-content.active{display:block}
+
+/* MESSAGES TAB */
+.header-title{color:#ff0050;margin:10px 0;font-size:26px;text-align:center}
 .chat-item{background:#111;padding:15px;margin:10px 0;border-radius:12px;display:flex;align-items:center;border:1px solid #222;transition:0.2s}
 .chat-item:hover{background:#1a1a1a;border-color:#ff0050}
 .chat-item a{color:#fff;text-decoration:none;font-size:18px;font-weight:bold}
 .avatar{width:50px;height:50px;border-radius:50%;background:#ff0050;margin-right:15px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#000;font-weight:bold}
 .empty{text-align:center;margin-top:100px;color:#888}
 .empty a{color:#ff0050}
+
+/* NOTIFICATIONS TAB */
+.notif-item{background:#111;padding:15px;margin:10px 0;border-radius:12px;border:1px solid #222;display:flex;gap:12px;align-items:center}
+.notif-item.unread{background:#1a1a1a;border-left:3px solid #ff0050}
+.notif-avatar{width:40px;height:40px;border-radius:50%;background:#222;display:flex;align-items:center;justify-content:center;font-weight:bold}
+.notif-text{flex:1;font-size:15px}
+.notif-time{font-size:12px;color:#666}
 </style>
 
-<h2 class="header-title">💬 Messages</h2>
+<div class="inbox-wrapper">
+    <div class="inbox-tabs">
+      <button class="tab-btn active" onclick="showTab('messages')">💬 Messages</button>
+      <button class="tab-btn" onclick="showTab('notifications')">🔔 Notifications</button>
+    </div>
 
-<div class="chat-list">
-{% if chats %}
-    {% for c in chats %}
-    <div class="chat-item">
-        <div class="avatar">{{ c['user'][0]|upper }}</div>
-        <a href="/dm_chat/{{ c['user'] }}">@{{ c['user'] }}</a>
+    <!-- MESSAGES TAB -->
+    <div id="messages" class="tab-content active">
+        <h2 class="header-title">Messages</h2>
+        {% if chats %}
+            {% for c in chats %}
+            <div class="chat-item">
+                <div class="avatar">{{ c['friend'][0]|upper }}</div>
+                <!-- FIXED: was /dm_chat/ now /dm/ to match your main.py -->
+                <a href="/dm/{{ c['friend'] }}">@{{ c['friend'] }}</a>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty">
+                <h3>No messages yet</h3>
+                <p>Go to <a href="/friends">Discover</a> and start a chat</p>
+            </div>
+        {% endif %}
     </div>
-    {% endfor %}
-{% else %}
-    <div class="empty">
-        <h3>No messages yet</h3>
-        <p>Go to <a href="/friends">Discover</a> and start a chat</p>
+
+    <!-- NOTIFICATIONS TAB -->
+    <div id="notifications" class="tab-content">
+        <h2 class="header-title">Notifications</h2>
+        {% if notifications %}
+            {% for n in notifications %}
+            <div class="notif-item {{ 'unread' if n.is_read==0 else '' }}">
+                <div class="notif-avatar">{{ n.actor[0]|upper }}</div>
+                <div class="notif-text">
+                    <b>{{n.actor}}</b> {{n.message}}<br>
+                    <span class="notif-time">{{n.timestamp|datetimeformat}}</span>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty">
+                <h3>No notifications yet</h3>
+                <p>When someone likes or follows you, it will show here</p>
+            </div>
+        {% endif %}
     </div>
-{% endif %}
 </div>
+
+<script>
+function showTab(tab){
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+    event.target.classList.add('active');
+}
+
+// AUTO OPEN NOTIF TAB IF URL HAS?tab=notif
+if(window.location.search.includes('tab=notif')){
+    showTab('notifications');
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    document.querySelectorAll('.tab-btn')[0].classList.remove('active');
+}
+</script>
 {% endblock %}
