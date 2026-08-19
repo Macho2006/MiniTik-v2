@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Upload Story</h2>
+<div style="max-width:500px;margin:0 auto;padding:20px">
+<h2>Post Story</h2>
 <form method="POST" enctype="multipart/form-data">
-    <input type="file" name="story_file" accept="image/*,video/*" required>
-    <button type="submit">Post Story</button>
+    <input type="file" name="story" accept="image/*,video/*" required style="width:100%;margin-bottom:10px">
+    <button type="submit">Upload Story</button>
 </form>
+</div>
 {% endblock %}
