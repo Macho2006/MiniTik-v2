@@ -19,7 +19,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_th
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30) # NEW: Stay logged in 30 days
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # NEW: Fix for modern browsers
+app.config['SESSION_COOKIE_SAMESITE'] = 'None' # NEW: Fix for modern browsers
 app.config['SESSION_COOKIE_SECURE'] = True # NEW: Required for https on Render
 # ===== END FIX =====
 
