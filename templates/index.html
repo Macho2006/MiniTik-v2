@@ -1,26 +1,85 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>For You</h1>
+<style>
+.video-feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
+.video-item { height: 100vh; scroll-snap-align: start; position: relative; background:#000; display:flex; align-items:center; justify-content:center }
+.video-item video, .video-item img { width: 100%; height: 100%; object-fit: cover; }
+.side-actions { position: absolute; right: 10px; bottom: 100px; display: flex; flex-direction: column; gap: 20px; z-index:2 }
+.action-btn { text-align: center; font-size:12px; color:#fff }
+.action-btn img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #fff; object-fit:cover }
+.video-info { position: absolute; bottom: 80px; left: 15px; right: 80px; z-index:2 }
+@media (max-width: 768px) { h1 { display:none } .container { padding:0 } }
+</style>
 
+<div class="video-feed">
 {% if videos %}
     {% for video in videos %}
-    <div style="background:#111;padding:15px;margin:20px 0;border-radius:10px">
-        <p><b><a href="/profile/{{ video['username'] }}">@{{ video['username'] }}</a></b></p>
-        
+    <div class="video-item">
+        <!-- YOUR ORIGINAL CARD WRAPPED -->
+        <div style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
+            <p><b><a href="/profile/{{ video['username'] }}">@{{ video['username'] }}</a></b></p>
+            
+            {% if video['type'] == 'image' %}
+                <img src="{{ video['video'] }}" style="width:100%;border-radius:10px">
+            {% else %}
+                <video src="{{ video['video'] }}" style="width:100%;border-radius:10px"></video>
+            {% endif %}
+
+            <p>{{ video['caption'] }}</p>
+            <p style="color:#888;font-size:12px">Filter: {{ video['filter'] }}</p>
+            
+            <a href="/like/{{ video['id'] }}">❤️ {{ video['likes'] }}</a> | 
+            <a href="/comments/{{ video['id'] }}">💬 Comment</a>
+        </div>
+
+        <!-- BACKGROUND FULLSCREEN MEDIA -->
         {% if video['type'] == 'image' %}
-            <img src="{{ video['video'] }}" style="width:100%;border-radius:10px">
+            <img src="{{ video['video'] }}" style="filter:blur(20px);opacity:0.3">
         {% else %}
-            <video controls src="{{ video['video'] }}" style="width:100%;border-radius:10px"></video>
+            <video src="{{ video['video'] }}" autoplay loop muted playsinline style="filter:blur(20px);opacity:0.3"></video>
         {% endif %}
 
-        <p>{{ video['caption'] }}</p>
-        <p style="color:#888;font-size:12px">Filter: {{ video['filter'] }}</p>
-        
-        <a href="/like/{{ video['id'] }}">❤️ {{ video['likes'] }}</a> | 
-        <a href="/comments/{{ video['id'] }}">💬 Comment</a>
+        <!-- RIGHT SIDE BUTTONS -->
+        <div class="side-actions">
+            <div class="action-btn">
+                <a href="/profile/{{ video['username'] }}">
+                    <img src="{{ video['profile_pic']|default('https://i.imgur.com/8Km9tLL.png') }}">
+                </a>
+            </div>
+            <div class="action-btn">
+                <a href="/like/{{ video['id'] }}" style="color:#fff">❤️</a><br>
+                {{ video['likes'] }}
+            </div>
+            <div class="action-btn">
+                <a href="/comments/{{ video['id'] }}" style="color:#fff">💬</a><br>
+                {{ video['comments']|default(0) }}
+            </div>
+            <div class="action-btn">📤<br>Share</div>
+        </div>
+
+        <!-- BOTTOM INFO -->
+        <div class="video-info">
+            <p><b><a href="/profile/{{ video['username'] }}" style="color:#fff">@{{ video['username'] }}</a></b></p>
+            <p>{{ video['caption'] }}</p>
+        </div>
     </div>
     {% endfor %}
 {% else %}
-    <p style="text-align:center;color:#888">No posts yet. <a href="/upload">Upload first!</a></p>
+    <div style="height:100vh;display:flex;align-items:center;justify-content:center">
+        <p style="text-align:center;color:#888">No posts yet. <a href="/upload">Upload first!</a></p>
+    </div>
 {% endif %}
+</div>
+
+<script>
+// Auto play/pause videos when scrolling
+const videos = document.querySelectorAll('.video-item video');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if(entry.isIntersecting) entry.target.play();
+    else entry.target.pause();
+  })
+}, {threshold: 0.7});
+videos.forEach(v => observer.observe(v));
+</script>
 {% endblock %}
