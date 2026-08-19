@@ -8,37 +8,43 @@
 /* ===== BIGGER SIDE BUTTONS - TIKTOK STYLE ===== */
 .side-actions { 
     position: absolute; 
-    right: 16px; /* was 12px */
-    bottom: calc(100px + env(safe-area-inset-bottom)); /* was 90px, moved up more */
+    right: 16px;
+    bottom: calc(100px + env(safe-area-inset-bottom));
     display: flex; 
     flex-direction: column; 
-    gap: 26px; /* was 22px */
+    gap: 26px;
     z-index: 10;
     align-items: center;
 }
 .action-btn { 
     text-align: center; 
-    font-size:14px; /* was 12px */
+    font-size:14px;
     color:#fff; 
     cursor:pointer;
-    font-weight: 700; /* bolder */
+    font-weight: 700;
     text-shadow: 0 0 4px rgba(0,0,0,0.9);
+    text-decoration: none;
 }
 .action-btn img { 
-    width: 54px; /* was 48px */
-    height: 54px; /* was 48px */
+    width: 54px;
+    height: 54px;
     border-radius: 50%; 
-    border: 2.5px solid #fff; /* thicker border */
+    border: 2.5px solid #fff;
     object-fit:cover 
 }
 
 /* BIGGER FOLLOW BUTTON UNDER PFP */
 .follow-btn-side{
-    background:#ff0050;color:#fff;border:none;padding:4px 10px; /* was 3px 8px */
-    border-radius:20px;font-size:11px;font-weight:bold;margin-top:5px; /* was 10px */
-    cursor:pointer;display:block;width:66px /* was 60px */
+    background:#ff0050;color:#fff;border:none;padding:4px 10px;
+    border-radius:20px;font-size:11px;font-weight:bold;margin-top:5px;
+    cursor:pointer;display:block;width:66px
 }
 .follow-btn-side.following{background:#555}
+
+/* NEW: LIKE BUTTON COLOR FIX */
+.like-btn{color:#fff;font-size:28px} /* WHITE BY DEFAULT */
+.like-btn.liked{color:#ff0050} /* RED WHEN LIKED */
+
 /* NEW: NEW VIDEOS BANNER */
 .new-videos-banner{display:none;background:#ff0050;color:#fff;text-align:center;padding:12px;font-weight:600;position:fixed;top:calc(50px + env(safe-area-inset-top));left:0;right:0;z-index:999;cursor:pointer}
 
@@ -50,8 +56,11 @@
     z-index:10;
     color: #fff;
 }
-.video-info .user-row{display:flex;align-items:center}
+.video-info .user-row{display:flex;align-items:center;gap:10px}
 .video-info p{ text-shadow: 0 0 3px rgba(0,0,0,0.8); } /* make caption readable */
+
+/* FIX: HIDE THE MIDDLE CARD */
+.old-card{display:none !important} /* HIDDEN BUT NOT REMOVED */
 
 @media (max-width: 768px) { h1 { display:none } .container { padding:0 } }
 
@@ -65,9 +74,9 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 <div class="video-feed" id="video-feed">
 {% if videos %}
     {% for video in videos %}
-    <div class="video-item" data-id="{{video['id']}}">
-        <!-- YOUR ORIGINAL CARD WRAPPED - KEPT 100% -->
-        <div style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
+    <div class="video-item" data-id="{{video['id']}}" data-liked="{{ '1' if video['username'] in liked_by else '0' }}">
+        <!-- YOUR ORIGINAL CARD WRAPPED - KEPT 100% BUT HIDDEN -->
+        <div class="old-card" style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
             <div style="display:flex;align-items:center">
                 <p><b><a href="/profile/{{ video['username'] }}">@{{ video['username'] }}</a></b></p>
                 
@@ -114,14 +123,12 @@ body { padding-bottom: env(safe-area-inset-bottom); }
                 </button>
                 {% endif %}
             </div>
-            <div class="action-btn">
-                <a href="/like/{{ video['id'] }}" style="color:#fff;text-decoration:none">❤️</a><br>
-                {{ video['likes'] }}
-            </div>
-            <div class="action-btn">
-                <a href="/comments_page/{{ video['id'] }}" style="color:#fff;text-decoration:none">💬</a><br>
-                {{ video['comment_count']|default(0) }}
-            </div>
+            <a href="/like/{{ video['id'] }}" class="action-btn like-btn {{ 'liked' if video['username'] in liked_by else '' }}">
+                ❤️<br>{{ video['likes'] }}
+            </a>
+            <a href="/comments_page/{{ video['id'] }}" class="action-btn">
+                💬<br>{{ video['comment_count']|default(0) }}
+            </a>
             <div class="action-btn" onclick="copyLink('{{video['id']}}')">📤<br>Share</div>
         </div>
 
@@ -173,6 +180,19 @@ async function toggleFollow(username, btn){
     });
 }
 
+// NEW: AJAX LIKE FUNCTION - WHITE TO RED
+document.querySelectorAll('.like-btn').forEach(btn=>{
+    btn.onclick = async (e)=>{
+        e.preventDefault();
+        const videoId = btn.closest('.video-item').dataset.id;
+        const res = await fetch(`/like/${videoId}`);
+        btn.classList.toggle('liked'); // toggle white/red
+        let count = parseInt(btn.innerText.match(/\d+/)[0]);
+        btn.classList.contains('liked') ? count++ : count--;
+        btn.innerHTML = `❤️<br>${count}`;
+    }
+})
+
 // Auto play/pause videos when scrolling
 const videos = document.querySelectorAll('.video-item video');
 const observer = new IntersectionObserver((entries) => {
@@ -220,7 +240,7 @@ document.getElementById('new-banner').onclick = () => {
             : `<video src="${v.video}" autoplay loop muted playsinline style="filter:blur(20px);opacity:0.3"></video>`;
             
         div.innerHTML = `
-            <div style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
+            <div class="old-card" style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
                 <div style="display:flex;align-items:center">
                     <p><b><a href="/profile/${v.username}">@${v.username}</a></b></p>
                     ${followBtn}
@@ -236,8 +256,8 @@ document.getElementById('new-banner').onclick = () => {
                     <a href="/profile/${v.username}"><img src="${v.profile_pic||'https://i.imgur.com/8Km9tLL.png'}"></a>
                     ${followBtnSide}
                 </div>
-                <div class="action-btn"><a href="/like/${v.id}" style="color:#fff;text-decoration:none">❤️</a><br>${v.likes}</div>
-                <div class="action-btn"><a href="/comments_page/${v.id}" style="color:#fff;text-decoration:none">💬</a><br>${v.comment_count||0}</div>
+                <a href="/like/${v.id}" class="action-btn like-btn">❤️<br>${v.likes}</a>
+                <a href="/comments_page/${v.id}" class="action-btn">💬<br>${v.comment_count||0}</a>
                 <div class="action-btn" onclick="copyLink('${v.id}')">📤<br>Share</div>
             </div>
             <div class="video-info">
