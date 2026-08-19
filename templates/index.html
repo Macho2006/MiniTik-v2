@@ -7,14 +7,21 @@
 .side-actions { position: absolute; right: 10px; bottom: 100px; display: flex; flex-direction: column; gap: 20px; z-index:2 }
 .action-btn { text-align: center; font-size:12px; color:#fff; cursor:pointer }
 .action-btn img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #fff; object-fit:cover }
+
+/* NEW: NEW VIDEOS BANNER */
+.new-videos-banner{display:none;background:#ff0050;color:#fff;text-align:center;padding:12px;font-weight:600;position:fixed;top:50px;left:0;right:0;z-index:999;cursor:pointer}
+
 .video-info { position: absolute; bottom: 80px; left: 15px; right: 80px; z-index:2 }
 @media (max-width: 768px) { h1 { display:none } .container { padding:0 } }
 </style>
 
-<div class="video-feed">
+<!-- NEW: BANNER FOR NEW VIDEOS -->
+<div class="new-videos-banner" id="new-banner">New videos available - Tap to refresh</div>
+
+<div class="video-feed" id="video-feed">
 {% if videos %}
     {% for video in videos %}
-    <div class="video-item">
+    <div class="video-item" data-id="{{video['id']}}">
         <!-- YOUR ORIGINAL CARD WRAPPED - KEPT 100% -->
         <div style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
             <p><b><a href="/profile/{{ video['username'] }}">@{{ video['username'] }}</a></b></p>
@@ -72,6 +79,13 @@
 </div>
 
 <script>
+// GET CURRENT TAB FROM URL
+const currentTab = window.location.pathname.includes('following') ? 'following' : 
+                   window.location.pathname.includes('trending') ? 'trending' : 'foryou';
+
+let lastId = Math.max(0, ...Array.from(document.querySelectorAll('.video-item')).map(v=>parseInt(v.dataset.id)||0));
+let newVideosBuffer = [];
+
 // Auto play/pause videos when scrolling
 const videos = document.querySelectorAll('.video-item video');
 const observer = new IntersectionObserver((entries) => {
@@ -81,6 +95,61 @@ const observer = new IntersectionObserver((entries) => {
   })
 }, {threshold: 0.7});
 videos.forEach(v => observer.observe(v));
+
+// NEW: CHECK FOR NEW VIDEOS EVERY 5 SECONDS
+setInterval(async () => {
+    try{
+        const res = await fetch(`/api/feed?tab=${currentTab}&last_id=${lastId}`);
+        const newVideos = await res.json();
+        
+        if(newVideos.length > 0){
+            newVideosBuffer = newVideos.concat(newVideosBuffer);
+            const banner = document.getElementById('new-banner');
+            banner.style.display = 'block';
+            banner.innerText = `${newVideosBuffer.length} new video${newVideosBuffer.length>1?'s':''} - Tap to refresh`;
+        }
+    }catch(e){}
+}, 5000);
+
+// TAP BANNER TO LOAD NEW VIDEOS
+document.getElementById('new-banner').onclick = () => {
+    const feed = document.getElementById('video-feed');
+    newVideosBuffer.forEach(v => {
+        lastId = Math.max(lastId, v.id);
+        const div = document.createElement('div');
+        div.className = 'video-item';
+        div.dataset.id = v.id;
+        
+        const media = v.type == 'image' 
+            ? `<img src="${v.video}" style="filter:blur(20px);opacity:0.3">`
+            : `<video src="${v.video}" autoplay loop muted playsinline style="filter:blur(20px);opacity:0.3"></video>`;
+            
+        div.innerHTML = `
+            <div style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
+                <p><b><a href="/profile/${v.username}">@${v.username}</a></b></p>
+                ${v.type == 'image' ? `<img src="${v.video}" style="width:100%;border-radius:10px">` : `<video src="${v.video}" style="width:100%;border-radius:10px"></video>`}
+                <p>${v.caption}</p>
+                <p style="color:#888;font-size:12px">Filter: ${v.filter}</p>
+                <a href="/like/${v.id}">❤️ ${v.likes}</a> | <a href="/comments_page/${v.id}">💬 Comment</a>
+            </div>
+            ${media}
+            <div class="side-actions">
+                <div class="action-btn"><a href="/profile/${v.username}"><img src="${v.profile_pic||'https://i.imgur.com/8Km9tLL.png'}"></a></div>
+                <div class="action-btn"><a href="/like/${v.id}" style="color:#fff;text-decoration:none">❤️</a><br>${v.likes}</div>
+                <div class="action-btn"><a href="/comments_page/${v.id}" style="color:#fff;text-decoration:none">💬</a><br>${v.comment_count||0}</div>
+                <div class="action-btn" onclick="copyLink('${v.id}')">📤<br>Share</div>
+            </div>
+            <div class="video-info"><p><b><a href="/profile/${v.username}" style="color:#fff">@${v.username}</a></b></p><p>${v.caption}</p></div>
+        `;
+        feed.prepend(div);
+        
+        // Observe new video for autoplay
+        const newVideo = div.querySelector('video');
+        if(newVideo) observer.observe(newVideo);
+    });
+    newVideosBuffer = [];
+    document.getElementById('new-banner').style.display = 'none';
+}
 
 // NEW: SHARE BUTTON
 function copyLink(videoId) {
