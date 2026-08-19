@@ -369,13 +369,16 @@ def upload():
     return render_template('upload.html', filters=FILTERS)
 # ===== END FIXED UPLOAD =====
 
-# ===== FIXED STORY UPLOAD ROUTE =====
+# ===== FIXED STORY UPLOAD ROUTE WITH ERROR HANDLING =====
 @app.route('/story/upload', methods=['GET', 'POST'])
 @login_required
 def story_upload():
     if request.method == 'POST':
         file = request.files.get('story')
-        if file and allowed_file(file.filename):
+        if not file or not allowed_file(file.filename):
+            flash('Invalid file type')
+            return render_template('story_upload.html')
+        try:
             ext = file.filename.rsplit('.', 1)[1].lower() # ADDED
             resource_type = "video" if ext in ['mp4', 'mov', 'avi'] else "image" # ADDED
 
@@ -393,6 +396,9 @@ def story_upload():
             conn.commit(); conn.close()
             flash('Story posted!')
             return redirect('/')
+        except Exception as e:
+            flash(f'Story upload failed: {str(e)}') # NEW: show real error
+            return render_template('story_upload.html')
     return render_template('story_upload.html')
 # ===== END FIXED STORY UPLOAD =====
 
