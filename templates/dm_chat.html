@@ -22,7 +22,8 @@
         {% endfor %}
     </div>
     <form class="chat-input" id="chat-form">
-        <input type="text" id="message-input" placeholder="Message..." autocomplete="off">
+        <!-- FIX 1: ADD name="message" -->
+        <input type="text" name="message" id="message-input" placeholder="Message..." autocomplete="off">
         <button type="submit">➤</button>
     </form>
 </div>
@@ -42,8 +43,20 @@ document.getElementById('chat-form').onsubmit = async (e) => {
     const msg = input.value.trim();
     if(!msg) return;
     input.value = '';
-    await fetch(`/dm_send/${friend}`, {method:'POST', body:new FormData(document.getElementById('chat-form'))});
-    // We will get it on next poll
+    
+    // FIX 2: Send with proper form data
+    const formData = new FormData();
+    formData.append('message', msg);
+    await fetch(`/dm_send/${friend}`, {method:'POST', body: formData});
+    
+    // Add message instantly so user doesn't wait for poll
+    lastId++;
+    const div = document.createElement('div');
+    div.className = 'msg me';
+    div.dataset.id = lastId;
+    div.innerText = msg;
+    chatBox.appendChild(div);
+    scrollToBottom();
 }
 
 // CHECK FOR NEW MESSAGES EVERY 2 SECONDS
