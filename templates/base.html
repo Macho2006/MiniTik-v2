@@ -84,8 +84,7 @@
         <a href="/following_list">Following</a> <!-- FIXED: was /following -->
         <a href="/friends">Discover</a>
         <a href="/search">Search</a>
-        <a href="/dm_inbox">DM</a>
-        <a href="/notifications">Notifications</a>
+        <a href="/inbox">Inbox</a> <!-- FIXED: was /dm_inbox and /notifications -->
         <a href="/profile/{{current_user.username}}">Profile</a>
         {% if current_user.is_admin %}<a href="/admin" style="color:#ff0050">Admin</a>{% endif %}
         <a href="/logout">Logout</a>
@@ -110,8 +109,8 @@
       <a href="/" class="{{ 'active' if tab=='foryou' or tab=='following' else '' }}"><span class="nav-icon">🏠</span>Home</a>
       <a href="/search" class="{{ 'active' if tab=='search' else '' }}"><span class="nav-icon">🔍</span>Discover</a> <!-- FIXED: added active -->
       <a href="/upload"><div class="plus-btn">+</div></a>
-      <a href="/notifications" class="{{ 'active' if tab=='notif' else '' }}">
-        <span class="nav-icon">🔔</span>Inbox
+      <a href="/inbox" class="{{ 'active' if tab=='inbox' or tab=='notif' else '' }}"> <!-- FIXED: was /notifications, icon changed -->
+        <span class="nav-icon">📥</span>Inbox
         <span class="notif-badge" id="notif-badge">0</span>
       </a>
       <a href="/profile/{{current_user.username}}" class="{{ 'active' if tab=='profile' else '' }}"><span class="nav-icon">👤</span>Me</a>
