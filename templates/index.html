@@ -3,7 +3,7 @@
 <style>
 .video-feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
 .video-item { height: 100vh; scroll-snap-align: start; position: relative; background:#000; display:flex; align-items:center; justify-content:center }
-.video-item video, .video-item img { width: 100%; height: 100%; object-fit: cover; }
+.video-item .main-media { width: 100%; height: 100%; object-fit: cover; } /* KEY: main video clear */
 
 /* ===== BIGGER SIDE BUTTONS - TIKTOK STYLE ===== */
 .side-actions { 
@@ -74,7 +74,7 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 <div class="video-feed" id="video-feed">
 {% if videos %}
     {% for video in videos %}
-    <div class="video-item" data-id="{{video['id']}}" data-liked="{{ '1' if video['username'] in liked_by else '0' }}">
+    <div class="video-item" data-id="{{video['id']}}">
         <!-- YOUR ORIGINAL CARD WRAPPED - KEPT 100% BUT HIDDEN -->
         <div class="old-card" style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
             <div style="display:flex;align-items:center">
@@ -102,11 +102,11 @@ body { padding-bottom: env(safe-area-inset-bottom); }
             <a href="/comments_page/{{ video['id'] }}">💬 Comment</a>
         </div>
 
-        <!-- BACKGROUND FULLSCREEN MEDIA -->
+        <!-- BACKGROUND FULLSCREEN MEDIA - REMOVED BLUR -->
         {% if video['type'] == 'image' %}
-            <img src="{{ video['video'] }}" style="filter:blur(20px);opacity:0.3">
+            <img src="{{ video['video'] }}" class="main-media">
         {% else %}
-            <video src="{{ video['video'] }}" autoplay loop muted playsinline style="filter:blur(20px);opacity:0.3"></video>
+            <video src="{{ video['video'] }}" autoplay loop muted playsinline class="main-media" preload="metadata"></video>
         {% endif %}
 
         <!-- RIGHT SIDE BUTTONS - UPDATED -->
@@ -123,7 +123,7 @@ body { padding-bottom: env(safe-area-inset-bottom); }
                 </button>
                 {% endif %}
             </div>
-            <a href="/like/{{ video['id'] }}" class="action-btn like-btn {{ 'liked' if video['username'] in liked_by else '' }}">
+            <a href="/like/{{ video['id'] }}" class="action-btn like-btn {{ 'liked' if video['id'] in liked_video_ids else '' }}">
                 ❤️<br>{{ video['likes'] }}
             </a>
             <a href="/comments_page/{{ video['id'] }}" class="action-btn">
@@ -180,27 +180,37 @@ async function toggleFollow(username, btn){
     });
 }
 
-// NEW: AJAX LIKE FUNCTION - WHITE TO RED
+// NEW: AJAX LIKE FUNCTION - WHITE TO RED - FIXED
 document.querySelectorAll('.like-btn').forEach(btn=>{
     btn.onclick = async (e)=>{
         e.preventDefault();
         const videoId = btn.closest('.video-item').dataset.id;
         const res = await fetch(`/like/${videoId}`);
-        btn.classList.toggle('liked'); // toggle white/red
-        let count = parseInt(btn.innerText.match(/\d+/)[0]);
-        btn.classList.contains('liked') ? count++ : count--;
-        btn.innerHTML = `❤️<br>${count}`;
+        const data = await res.json(); // USE SERVER RESPONSE
+        if(data.status == 'liked'){
+            btn.classList.add('liked');
+        } else {
+            btn.classList.remove('liked');
+        }
+        btn.innerHTML = `❤️<br>${data.likes}`;
     }
 })
 
-// Auto play/pause videos when scrolling
+// FIX 2: ONLY PLAY 1 VIDEO AT A TIME - FAST SCROLL
 const videos = document.querySelectorAll('.video-item video');
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
-    if(entry.isIntersecting) entry.target.play();
-    else entry.target.pause();
+    const video = entry.target;
+    if(entry.isIntersecting){ 
+        video.play();
+        video.muted = false;
+    } else {
+        video.pause();
+        video.currentTime = 0;
+        video.muted = true;
+    }
   })
-}, {threshold: 0.7});
+}, {threshold: 0.8});
 videos.forEach(v => observer.observe(v));
 
 // NEW: CHECK FOR NEW VIDEOS EVERY 5 SECONDS
@@ -236,8 +246,8 @@ document.getElementById('new-banner').onclick = () => {
             : '';
         
         const media = v.type == 'image' 
-            ? `<img src="${v.video}" style="filter:blur(20px);opacity:0.3">`
-            : `<video src="${v.video}" autoplay loop muted playsinline style="filter:blur(20px);opacity:0.3"></video>`;
+            ? `<img src="${v.video}" class="main-media">`
+            : `<video src="${v.video}" autoplay loop muted playsinline class="main-media" preload="metadata"></video>`;
             
         div.innerHTML = `
             <div class="old-card" style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
