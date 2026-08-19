@@ -113,7 +113,7 @@
         <span class="nav-icon">📥</span>Inbox
         <span class="notif-badge" id="notif-badge">0</span>
       </a>
-      <a href="/profile/{{current_user.username}}" class="{{ 'active' if tab=='profile' else '' }}"><span class="nav-icon">👤</span>Me</a>
+      <a href="{% if current_user.is_authenticated %}/profile/{{current_user.username}}{% else %}/login{% endif %}" class="{{ 'active' if tab=='profile' else '' }}">
     </div>
 
 <script>
