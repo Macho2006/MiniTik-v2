@@ -1,35 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-<style>
-.comments-container{max-width:600px;margin:0 auto}
-.comment-box{background:#111;padding:15px;margin:10px 0;border-radius:10px;border-left:3px solid #ff0050}
-.comment-user{color:#00f5d4;font-weight:bold;margin-bottom:5px}
-.comment-text{color:#fff;word-wrap:break-word}
-.comment-form{display:flex;gap:10px;margin:20px 0}
-.comment-form input{flex:1;padding:12px;border-radius:8px;border:none;background:#222;color:white}
-.comment-form button{padding:12px 25px;background:#ff0050;border:none;border-radius:8px;color:white;font-weight:bold;cursor:pointer}
-.comment-form button:hover{background:#e00045}
-.back{color:#ff0050;text-decoration:none}
-</style>
-
-<div class="comments-container">
-    <a href="/" class="back">← Back to Home</a>
+<div style="max-width:600px;margin:0 auto;padding:20px">
     <h2>Comments</h2>
 
-    <form method="POST" class="comment-form">
-        <input name="comment" placeholder="Add comment..." required autocomplete="off">
+    <!-- VIDEO PREVIEW -->
+    {% if video['type'] == 'image' %}
+        <img src="{{video['video']}}" style="width:100%;border-radius:10px">
+    {% else %}
+        <video src="{{video['video']}}" controls style="width:100%;border-radius:10px"></video>
+    {% endif %}
+    <p><b>@{{video['username']}}</b>: {{video['caption']}}</p>
+
+    <!-- COMMENT FORM - uses your existing /comment route -->
+    <form method="POST" action="/comment/{{video['id']}}" style="margin:20px 0;display:flex;gap:10px">
+        <input name="comment" placeholder="Add comment..." required style="flex:1">
         <button type="submit">Post</button>
     </form>
 
-    {% if comments %}
-        {% for c in comments %}
-        <div class="comment-box">
-            <div class="comment-user">@{{ c['username'] }}</div>
-            <div class="comment-text">{{ c['comment'] }}</div>
-        </div>
-        {% endfor %}
+    <!-- COMMENTS LIST -->
+    {% for c in comments %}
+    <div style="background:#111;padding:10px;margin:10px 0;border-radius:8px">
+        <b>@{{c['username']}}</b> <span style="color:#888;font-size:12px">{{c['timestamp']|datetimeformat}}</span>
+        <p>{{c['comment']}}</p>
+    </div>
     {% else %}
-        <p style="text-align:center;color:#888;margin-top:30px">No comments yet. Be the first!</p>
-    {% endif %}
+    <p style="color:#888">No comments yet. Be first!</p>
+    {% endfor %}
 </div>
 {% endblock %}
