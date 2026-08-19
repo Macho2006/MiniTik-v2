@@ -22,6 +22,15 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# ===== NEW: FIX API 302 REDIRECT TO 401 JSON =====
+@login_manager.unauthorized_handler
+def unauthorized():
+    # If it's an API call, return JSON 401 instead of redirecting
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Unauthorized', 'count': 0}), 401
+    return redirect(url_for('login'))
+# ===== END NEW =====
+
 cloudinary.config(
   cloud_name = os.environ.get('CLOUD_NAME'),
   api_key = os.environ.get('CLOUD_API_KEY'),
