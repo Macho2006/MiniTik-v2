@@ -13,17 +13,28 @@ from datetime import datetime, timedelta # FIXED: added timedelta
 app = Flask(__name__)
 
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this') # FIXED: removed duplicate
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 
-# ===== FINAL COOKIE FIX FOR RENDER =====
+# ===== FINAL COOKIE FIX FOR RENDER - NO MORE BOUNCE =====
+is_prod = os.environ.get('RENDER') == 'true' # Render sets this automatically
+
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
-app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember' # ADD THIS
-app.config['SESSION_COOKIE_NAME'] = 'minitik_session' # ADD THIS
-app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax' # CHANGED FROM None
-app.config['REMEMBER_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # CHANGED FROM None
-app.config['SESSION_COOKIE_SECURE'] = True
+app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember'
+app.config['SESSION_COOKIE_NAME'] = 'minitik_session'
+
+if is_prod: # ONLY use Secure on Render production
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+    app.config['REMEMBER_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_SECURE'] = True
+else: # Local dev
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+    app.config['REMEMBER_COOKIE_SECURE'] = False
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_SECURE'] = False
+
 app.config['SESSION_COOKIE_DOMAIN'] = None
+app.config['SESSION_COOKIE_HTTPONLY'] = True # ADDED FOR SECURITY
 # ===== END FIX =====
 
 login_manager = LoginManager()
@@ -170,6 +181,10 @@ def login():
             return redirect('/')
         flash('Invalid login')
     return render_template('login.html')
+
+login_user(user_obj, remember=True)
+session.permanent = True # ADD THIS LINE
+flash(f'Welcome back {user["username"]}!')
 
 @app.route('/logout')
 @login_required
