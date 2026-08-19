@@ -571,5 +571,41 @@ def api_notifications():
     return jsonify(notifs)
 # ===== END REAL TIME NOTIFICATIONS API =====
 
+# ===== NEW: REAL TIME FEED API =====
+@app.route('/api/feed')
+@login_required
+def api_feed():
+    tab = request.args.get('tab', 'foryou')
+    last_id = request.args.get('last_id', 0, type=int)
+    conn = get_db(); c = conn.cursor()
+
+    if tab == 'following':
+        c.execute("""
+            SELECT v.*, u.profile_pic, u.verified,
+            (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
+            FROM videos v JOIN users u ON v.username=u.username
+            WHERE v.username IN (SELECT following FROM following WHERE follower=%s) AND v.id > %s
+            ORDER BY timestamp DESC LIMIT 10
+        """, (current_user.username, last_id))
+    elif tab == 'trending':
+        c.execute("""
+            SELECT v.*, u.profile_pic, u.verified,
+            (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
+            FROM videos v JOIN users u ON v.username=u.username WHERE v.id > %s
+            ORDER BY likes DESC LIMIT 10
+        """, (last_id,))
+    else: # foryou
+        c.execute("""
+            SELECT v.*, u.profile_pic, u.verified,
+            (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
+            FROM videos v JOIN users u ON v.username=u.username WHERE v.id > %s
+            ORDER BY timestamp DESC LIMIT 10
+        """, (last_id,))
+
+    videos = c.fetchall()
+    conn.close()
+    return jsonify(videos)
+# ===== END REAL TIME FEED API =====
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
