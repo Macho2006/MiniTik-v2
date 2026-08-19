@@ -453,7 +453,7 @@ def notifications():
     notifs = c.fetchall()
     c.execute("UPDATE notifications SET is_read=1 WHERE username=%s", (current_user.username,))
     conn.commit(); conn.close()
-    return render_template('notifications.html', notifications=notifs)
+    return render_template('notifications.html', notifications=notifs, tab='notif') # ADDED tab
 
 @app.route('/admin')
 @login_required
@@ -550,6 +550,26 @@ def dm_get(username):
     conn.close()
     return jsonify(messages)
 # ===== END REAL TIME CHAT API =====
+
+# ===== NEW: REAL TIME NOTIFICATIONS API =====
+@app.route('/api/notifications_count')
+@login_required
+def notifications_count():
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT COUNT(*) as count FROM notifications WHERE username=%s AND is_read=0", (current_user.username,))
+    count = c.fetchone()['count']
+    conn.close()
+    return jsonify({'count': count})
+
+@app.route('/api/notifications')
+@login_required
+def api_notifications():
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM notifications WHERE username=%s ORDER BY timestamp DESC LIMIT 10", (current_user.username,))
+    notifs = c.fetchall()
+    conn.close()
+    return jsonify(notifs)
+# ===== END REAL TIME NOTIFICATIONS API =====
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
