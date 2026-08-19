@@ -117,10 +117,19 @@
     </div>
 
 <script>
-// REAL TIME NOTIFICATIONS POLLING EVERY 3 SECONDS
+// ===== FIXED: REAL TIME NOTIFICATIONS POLLING =====
+let notifInterval = null;
+
 async function checkNotifications(){
     try{
         const res = await fetch('/api/notifications_count');
+        
+        // NEW: Stop polling if not logged in to prevent 401 spam
+        if(res.status === 401){
+            clearInterval(notifInterval);
+            return;
+        }
+
         const data = await res.json();
         const badge = document.getElementById('notif-badge');
         if(data.count > 0){
@@ -131,9 +140,13 @@ async function checkNotifications(){
         }
     }catch(e){}
 }
-// Run on load and every 3 seconds
+
+// NEW: Only run polling if user is logged in
+{% if current_user.is_authenticated %}
 checkNotifications();
-setInterval(checkNotifications, 3000);
+notifInterval = setInterval(checkNotifications, 5000); // Changed to 5s to reduce server load
+{% endif %}
+// ===== END FIX =====
 </script>
 </body>
 </html>
