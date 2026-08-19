@@ -253,10 +253,16 @@ def profile(username):
     conn.close()
     return render_template('profile.html', user=user, videos=videos, is_following=is_following, current_user=current_user.username, tab='profile')
 
-# NEW: FIX 404 when user types /profile
+# FIX 1: /profile redirects to logged in user's profile
 @app.route('/profile')
 @login_required
 def my_profile():
+    return redirect(f'/profile/{current_user.username}')
+
+# FIX 2: /profile/ with slash also redirects
+@app.route('/profile/')
+@login_required
+def my_profile_slash():
     return redirect(f'/profile/{current_user.username}')
 
 @app.route('/follow/<username>')
