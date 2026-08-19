@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Inbox - Minitik{% endblock %}
+
+{% block content %}
+<div class="inbox-container">
+    <!-- TABS -->
+    <div class="inbox-tabs">
+        <button class="tab-btn active" onclick="showTab('chats')">Chats</button>
+        <button class="tab-btn" onclick="showTab('notif')">Notifications</button>
+    </div>
+
+    <!-- CHATS TAB -->
+    <div id="chats" class="tab-content active">
+        <h2>Messages</h2>
+        {% if chats %}
+            {% for chat in chats %}
+            <a href="/dm/{{ chat.friend }}" class="chat-item">
+                <img src="https://ui-avatars.com/api/?name={{ chat.friend }}" class="avatar">
+                <div class="chat-info">
+                    <b>{{ chat.friend }}</b>
+                    <p>{{ chat.message[:40] }}...</p>
+                </div>
+                <span class="chat-time">{{ chat.timestamp | datetimeformat }}</span>
+            </a>
+            {% endfor %}
+        {% else %}
+            <p class="empty">No messages yet</p>
+        {% endif %}
+    </div>
+
+    <!-- NOTIFICATIONS TAB -->
+    <div id="notif" class="tab-content">
+        <h2>Notifications</h2>
+        {% if notifications %}
+            {% for n in notifications %}
+            <div class="notif-item {% if not n.is_read %}unread{% endif %}">
+                <b>{{ n.actor }}</b> {{ n.message }}
+                <span class="notif-time">{{ n.timestamp | datetimeformat }}</span>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty">No notifications</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.inbox-container{max-width:600px;margin:20px auto;background:#111;border-radius:12px;padding:10px}
+.inbox-tabs{display:flex;gap:10px;margin-bottom:15px}
+.tab-btn{flex:1;padding:10px;background:#222;border:none;color:#fff;border-radius:8px;cursor:pointer}
+.tab-btn.active{background:#ff0050}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.chat-item{display:flex;align-items:center;gap:10px;padding:12px;background:#1a1a1a;margin-bottom:8px;border-radius:8px;text-decoration:none;color:#fff}
+.avatar{width:45px;height:45px;border-radius:50%}
+.chat-info{flex:1}
+.chat-info p{font-size:12px;color:#aaa;margin:0}
+.chat-time{font-size:11px;color:#777}
+.notif-item{padding:12px;background:#1a1a1a;margin-bottom:8px;border-radius:8px;font-size:14px}
+.notif-item.unread{border-left:3px solid #ff0050}
+.notif-time{display:block;font-size:11px;color:#777;margin-top:4px}
+.empty{text-align:center;color:#777;padding:40px 0}
+</style>
+
+<script>
+function showTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+    event.target.classList.add('active');
+}
+
+// Auto open notifications tab if url has?tab=notif
+if(window.location.search.includes('tab=notif')){
+    document.querySelectorAll('.tab-btn')[1].click();
+}
+</script>
+{% endblock %}
