@@ -205,8 +205,11 @@ def following_feed(): # Renamed to avoid conflict with /following users list
         ORDER BY timestamp DESC
     """, (current_user.username,))
     videos = c.fetchall()
+    # NEW: GET FOLLOWING LIST FOR BUTTON STATE
+    c.execute("SELECT following FROM following WHERE follower=%s", (current_user.username,))
+    following = [r['following'] for r in c.fetchall()]
     conn.close()
-    return render_template('index.html', videos=videos, current_user=current_user.username, tab='following')
+    return render_template('index.html', videos=videos, current_user=current_user.username, following=following, tab='following') # FIXED: added following
 
 @app.route('/trending')
 def trending():
@@ -217,8 +220,13 @@ def trending():
         FROM videos v JOIN users u ON v.username=u.username ORDER BY likes DESC LIMIT 20
     """)
     videos = c.fetchall()
+    # NEW: GET FOLLOWING LIST FOR BUTTON STATE
+    following = []
+    if current_user.is_authenticated:
+        c.execute("SELECT following FROM following WHERE follower=%s", (current_user.username,))
+        following = [r['following'] for r in c.fetchall()]
     conn.close()
-    return render_template('index.html', videos=videos, tab='trending')
+    return render_template('index.html', videos=videos, current_user=current_user.username if current_user.is_authenticated else '', following=following, tab='trending') # FIXED: added following
 
 @app.route('/profile/<username>')
 @login_required
@@ -255,6 +263,25 @@ def follow(username):
         c.execute("UPDATE users SET followers = followers + 1 WHERE username=%s", (username,))
         create_notification(username, current_user.username, 'follow', 0, f'{current_user.username} started following you')
     conn.commit(); conn.close(); return redirect(f'/profile/{username}')
+
+# ===== NEW: AJAX FOLLOW ROUTE FOR BUTTON ON POSTS =====
+@app.route('/follow_ajax/<username>')
+@login_required
+def follow_ajax(username):
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT 1 FROM following WHERE follower=%s AND following=%s", (current_user.username, username)); exists = c.fetchone()
+    if exists:
+        c.execute("DELETE FROM following WHERE follower=%s AND following=%s", (current_user.username, username))
+        c.execute("UPDATE users SET followers = followers - 1 WHERE username=%s", (username,))
+        status = 'unfollowed'
+    else:
+        c.execute("INSERT INTO following VALUES (%s,%s)", (current_user.username, username))
+        c.execute("UPDATE users SET followers = followers + 1 WHERE username=%s", (username,))
+        create_notification(username, current_user.username, 'follow', 0, f'{current_user.username} started following you')
+        status = 'followed'
+    conn.commit(); conn.close();
+    return jsonify({'status': status})
+# ===== END NEW =====
 
 # ===== FIXED UPLOAD ROUTE =====
 @app.route('/upload', methods=['GET', 'POST'])
