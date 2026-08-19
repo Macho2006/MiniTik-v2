@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify, make_response
 import os
 import time
 from werkzeug.utils import secure_filename
@@ -13,16 +13,15 @@ from datetime import datetime, timedelta # FIXED: added timedelta
 app = Flask(__name__)
 
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
-app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this') # FIXED: removed duplicate
 
 # ===== FINAL COOKIE FIX FOR RENDER =====
-app.config['SECRET_KEY'] = 'change-this-to-a-random-string'
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember' # ADD THIS
 app.config['SESSION_COOKIE_NAME'] = 'minitik_session' # ADD THIS
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax' # CHANGED FROM None
 app.config['REMEMBER_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # CHANGED FROM None  
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # CHANGED FROM None
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_DOMAIN'] = None
 # ===== END FIX =====
@@ -171,10 +170,7 @@ def login():
             return redirect('/')
         flash('Invalid login')
     return render_template('login.html')
-    login_user(user_obj, remember=True)
-resp = make_response(redirect('/'))
-resp.set_cookie('test', '1', samesite='Lax', secure=True) # force cookie
-return resp
+    # DELETED: broken code that was here
 
 @app.route('/logout')
 @login_required
