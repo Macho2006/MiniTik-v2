@@ -179,6 +179,51 @@ def settings():
 @login_required
 def index():
     conn = get_db(); c = conn.cursor()
+    c.execute("""
+        SELECT v.*, u.profile_pic, u.verified,
+        (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
+        FROM videos v JOIN users u ON v.username=u.username ORDER BY timestamp DESC
+    """)
+    videos = c.fetchall()
+    twenty_four_hours_ago = time.time() - (24 * 60 * 60)
+    c.execute("SELECT DISTINCT ON (s.username) s.*, u.profile_pic FROM stories s JOIN users u ON s.username=u.username WHERE s.timestamp > %s ORDER BY s.username, s.timestamp DESC", (twenty_four_hours_ago,))
+    stories = c.fetchall()
+    c.execute("SELECT following FROM following WHERE follower=%s", (current_user.username,))
+    following = [r['following'] for r in c.fetchall()]
+    conn.close()
+    return render_template('index.html', videos=videos, stories=stories, current_user=current_user.username, following=following, tab='foryou') # ADDED tab
+
+@app.route('/following')
+@login_required
+def following_feed(): # Renamed to avoid conflict with /following users list
+    conn = get_db(); c = conn.cursor()
+    c.execute("""
+        SELECT v.*, u.profile_pic, u.verified,
+        (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
+        FROM videos v JOIN users u ON v.username=u.username 
+        WHERE v.username IN (SELECT following FROM following WHERE follower=%s)
+        ORDER BY timestamp DESC
+    """, (current_user.username,))
+    videos = c.fetchall()
+    conn.close()
+    return render_template('index.html', videos=videos, current_user=current_user.username, tab='following') # ADDED tab
+
+@app.route('/trending')
+def trending():
+    conn = get_db(); c = conn.cursor()
+    c.execute("""
+        SELECT v.*, u.profile_pic, u.verified,
+        (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
+        FROM videos v JOIN users u ON v.username=u.username ORDER BY likes DESC LIMIT 20
+    """)
+    videos = c.fetchall()
+    conn.close()
+    return render_template('index.html', videos=videos, tab='trending') # ADDED tab
+
+@app.route('/')
+@login_required
+def index():
+    conn = get_db(); c = conn.cursor()
     # UPDATED: Added comment_count
     c.execute("""
         SELECT v.*, u.profile_pic, u.verified,
