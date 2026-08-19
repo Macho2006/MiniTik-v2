@@ -191,7 +191,7 @@ def index():
     c.execute("SELECT following FROM following WHERE follower=%s", (current_user.username,))
     following = [r['following'] for r in c.fetchall()]
     conn.close()
-    return render_template('index.html', videos=videos, stories=stories, current_user=current_user.username, following=following, tab='foryou') # ADDED tab
+    return render_template('index.html', videos=videos, stories=stories, current_user=current_user.username, following=following, tab='foryou')
 
 @app.route('/following')
 @login_required
@@ -200,13 +200,13 @@ def following_feed(): # Renamed to avoid conflict with /following users list
     c.execute("""
         SELECT v.*, u.profile_pic, u.verified,
         (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
-        FROM videos v JOIN users u ON v.username=u.username 
+        FROM videos v JOIN users u ON v.username=u.username
         WHERE v.username IN (SELECT following FROM following WHERE follower=%s)
         ORDER BY timestamp DESC
     """, (current_user.username,))
     videos = c.fetchall()
     conn.close()
-    return render_template('index.html', videos=videos, current_user=current_user.username, tab='following') # ADDED tab
+    return render_template('index.html', videos=videos, current_user=current_user.username, tab='following')
 
 @app.route('/trending')
 def trending():
@@ -218,26 +218,7 @@ def trending():
     """)
     videos = c.fetchall()
     conn.close()
-    return render_template('index.html', videos=videos, tab='trending') # ADDED tab
-
-@app.route('/')
-@login_required
-def index():
-    conn = get_db(); c = conn.cursor()
-    # UPDATED: Added comment_count
-    c.execute("""
-        SELECT v.*, u.profile_pic, u.verified,
-        (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
-        FROM videos v JOIN users u ON v.username=u.username ORDER BY timestamp DESC
-    """)
-    videos = c.fetchall()
-    twenty_four_hours_ago = time.time() - (24 * 60 * 60)
-    c.execute("SELECT DISTINCT ON (s.username) s.*, u.profile_pic FROM stories s JOIN users u ON s.username=u.username WHERE s.timestamp > %s ORDER BY s.username, s.timestamp DESC", (twenty_four_hours_ago,))
-    stories = c.fetchall()
-    c.execute("SELECT following FROM following WHERE follower=%s", (current_user.username,))
-    following = [r['following'] for r in c.fetchall()]
-    conn.close()
-    return render_template('index.html', videos=videos, stories=stories, current_user=current_user.username, following=following, tab='foryou')
+    return render_template('index.html', videos=videos, tab='trending')
 
 @app.route('/profile/<username>')
 @login_required
@@ -253,7 +234,7 @@ def profile(username):
     c.execute("SELECT 1 FROM following WHERE follower=%s AND following=%s", (current_user.username, username))
     is_following = c.fetchone()
     conn.close()
-    return render_template('profile.html', user=user, videos=videos, is_following=is_following)
+    return render_template('profile.html', user=user, videos=videos, is_following=is_following, current_user=current_user.username, tab='profile')
 
 @app.route('/follow/<username>')
 @login_required
@@ -449,7 +430,7 @@ def friends():
     conn.close()
     return render_template('friends.html', friends=friends)
 
-@app.route('/following')
+@app.route('/following_list') # FIXED: Renamed from /following to avoid conflict
 @login_required
 def following():
     conn = get_db(); c = conn.cursor()
@@ -457,14 +438,6 @@ def following():
     following = c.fetchall()
     conn.close()
     return render_template('following.html', users=following)
-
-@app.route('/trending')
-def trending():
-    conn = get_db(); c = conn.cursor()
-    c.execute("SELECT v.*, u.profile_pic, u.verified FROM videos v JOIN users u ON v.username=u.username ORDER BY likes DESC LIMIT 20")
-    videos = c.fetchall()
-    conn.close()
-    return render_template('trending.html', videos=videos)
 
 @app.route('/notifications')
 @login_required
