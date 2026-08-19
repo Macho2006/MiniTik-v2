@@ -37,7 +37,7 @@
           display: flex; justify-content: space-around; align-items: center;
           height: 60px; border-top: 1px solid #222; z-index: 999;
         }
-        .bottom-nav a { color: #888; text-decoration: none; font-size: 10px; text-align: center; flex:1 }
+        .bottom-nav a { color: #888; text-decoration: none; font-size: 10px; text-align: center; flex:1; position:relative }
         .bottom-nav a.active { color: #fff; }
         .bottom-nav .plus-btn {
           background: linear-gradient(45deg, #ff0050, #00f5d4); 
@@ -46,6 +46,9 @@
           font-weight: bold; font-size: 24px; margin: 0 auto;
         }
         .nav-icon { font-size: 22px; display:block; margin-bottom:2px }
+
+        /* NEW: NOTIFICATION BADGE */
+        .notif-badge{position:absolute;top:2px;right:18px;background:#ff0050;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;display:none}
 
         .content { padding-top: 50px; padding-bottom: 70px; }
 
@@ -107,8 +110,31 @@
       <a href="/" class="{{ 'active' if tab=='foryou' or tab=='following' else '' }}"><span class="nav-icon">🏠</span>Home</a>
       <a href="/search" class="{{ 'active' if tab=='search' else '' }}"><span class="nav-icon">🔍</span>Discover</a> <!-- FIXED: added active -->
       <a href="/upload"><div class="plus-btn">+</div></a>
-      <a href="/dm_inbox" class="{{ 'active' if tab=='dm' else '' }}"><span class="nav-icon">📥</span>Inbox</a> <!-- FIXED: added active -->
+      <a href="/notifications" class="{{ 'active' if tab=='notif' else '' }}">
+        <span class="nav-icon">🔔</span>Inbox
+        <span class="notif-badge" id="notif-badge">0</span>
+      </a>
       <a href="/profile/{{current_user.username}}" class="{{ 'active' if tab=='profile' else '' }}"><span class="nav-icon">👤</span>Me</a>
     </div>
+
+<script>
+// REAL TIME NOTIFICATIONS POLLING EVERY 3 SECONDS
+async function checkNotifications(){
+    try{
+        const res = await fetch('/api/notifications_count');
+        const data = await res.json();
+        const badge = document.getElementById('notif-badge');
+        if(data.count > 0){
+            badge.innerText = data.count > 9 ? '9+' : data.count;
+            badge.style.display = 'flex';
+        }else{
+            badge.style.display = 'none';
+        }
+    }catch(e){}
+}
+// Run on load and every 3 seconds
+checkNotifications();
+setInterval(checkNotifications, 3000);
+</script>
 </body>
 </html>
