@@ -23,13 +23,13 @@ input[type=file]{padding:12px;width:90%;background:#222;color:white;border-radiu
 
         <form method="post" enctype="multipart/form-data">
             <input type="file" name="story" id="storyInput" accept="video/*,image/*" required onchange="previewFile()">
-            
+
             <img id="imgPreview" class="preview">
             <video id="vidPreview" class="preview" controls></video>
-            
+
             <button class="btn" type="submit">Post Story</button>
         </form>
-        <a href="/stories" class="cancel">Cancel</a>
+        <a href="/" class="cancel">Cancel</a> <!-- FIXED: was /stories -->
     </div>
 </div>
 
@@ -40,7 +40,7 @@ function previewFile(){
     const vid = document.getElementById('vidPreview');
     img.style.display = 'none';
     vid.style.display = 'none';
-    
+
     if(file){
         const url = URL.createObjectURL(file);
         if(file.type.startsWith('image')){
