@@ -335,7 +335,15 @@ def upload():
             return redirect('/')
         except Exception as e:
             flash(f'Upload failed: {str(e)}')
-
+            
+upload_result = cloudinary.uploader.upload(
+    file, 
+    resource_type=resource_type, 
+    folder="minitik_videos",
+    quality="auto",  # auto compress
+    fetch_format="auto" # webp/mp4
+)
+    
     return render_template('upload.html', filters=FILTERS) # THIS FIXES 500
 # ===== END FIXED UPLOAD =====
 
