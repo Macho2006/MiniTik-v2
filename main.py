@@ -355,13 +355,23 @@ def upload():
     return render_template('upload.html', filters=FILTERS)
 # ===== END FIXED UPLOAD =====
 
+# ===== FIXED STORY UPLOAD ROUTE =====
 @app.route('/story/upload', methods=['GET', 'POST'])
 @login_required
 def story_upload():
     if request.method == 'POST':
         file = request.files.get('story')
         if file and allowed_file(file.filename):
-            upload_result = cloudinary.uploader.upload(file, resource_type="video", folder="minitik_stories")
+            ext = file.filename.rsplit('.', 1)[1].lower() # ADDED
+            resource_type = "video" if ext in ['mp4', 'mov', 'avi'] else "image" # ADDED
+
+            upload_result = cloudinary.uploader.upload(
+                file,
+                resource_type=resource_type, # FIXED: was hardcoded "video"
+                folder="minitik_stories",
+                quality="auto", # ADDED FOR SPEED
+                fetch_format="auto" # ADDED FOR SPEED
+            )
             story_url = upload_result['secure_url']
             conn = get_db(); c = conn.cursor()
             c.execute("INSERT INTO stories (username, video, timestamp) VALUES (%s,%s,%s)",
@@ -370,6 +380,7 @@ def story_upload():
             flash('Story posted!')
             return redirect('/')
     return render_template('story_upload.html')
+# ===== END FIXED STORY UPLOAD =====
 
 @app.route('/story/<int:story_id>')
 @login_required
