@@ -5,13 +5,21 @@
     max-width: 600px;
     margin: 0 auto;
     text-align: center;
+    padding: 20px;
 }
 .upload-container h1 {
     color: #ff0050;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
-.upload-container input, 
-.upload-container textarea, 
+.upload-tabs{display:flex;gap:10px;margin-bottom:20px}
+.tab-btn{flex:1;padding:12px;background:#222;border:2px solid #333;border-radius:10px;color:white;cursor:pointer;font-weight:600;font-size:16px}
+.tab-btn.active{background:#ff0050;border-color:#ff0050}
+#camera-preview{width:100%;max-width:500px;border-radius:12px;background:#000;display:none;margin:10px auto}
+#camera-controls{display:none;margin:10px 0}
+.upload-form{display:none}
+.upload-form.active{display:block}
+.upload-container input,
+.upload-container textarea,
 .upload-container select {
     width: 80%;
     padding: 12px;
@@ -46,6 +54,8 @@
 .btn:hover {
     background: #e00045;
 }
+.btn-record{background:#ff0050}
+.btn-stop{background:#333}
 .back-link {
     display: block;
     margin-top: 20px;
@@ -54,22 +64,127 @@
 </style>
 
 <div class="upload-container">
-    <h1>Upload Video or Picture</h1>
-    <form method="POST" enctype="multipart/form-data">
+    <h1>Create</h1>
+
+    <div class="upload-tabs">
+        <button class="tab-btn active" onclick="switchTab('gallery')">📁 Gallery</button>
+        <button class="tab-btn" onclick="switchTab('camera')">📹 Camera</button>
+    </div>
+
+    <!-- CAMERA PREVIEW -->
+    <video id="camera-preview" autoplay playsinline></video>
+    <div id="camera-controls">
+        <button class="btn btn-record" id="start-record">🔴 Record</button>
+        <button class="btn btn-stop" id="stop-record" style="display:none;">⏹️ Stop</button>
+        <button class="btn" id="take-photo">📸 Photo</button>
+    </div>
+
+    <!-- GALLERY FORM -->
+    <form method="POST" enctype="multipart/form-data" class="upload-form active" id="gallery-form">
         <input type="file" name="video" accept="video/*,image/*" required><br>
-        
+
         <textarea name="caption" placeholder="Write a caption..."></textarea><br>
-        
+
         <label>Choose Filter:</label>
         <select name="filter">
             {% for f in filters %}
             <option value="{{ f }}">{{ f }}</option>
             {% endfor %}
         </select><br>
-        
+
         <button class="btn" type="submit">Post</button>
     </form>
-    
+
+    <!-- CAMERA FORM -->
+    <form method="POST" enctype="multipart/form-data" class="upload-form" id="camera-form">
+        <input type="file" name="video" id="recorded-file" style="display:none" required>
+
+        <textarea name="caption" placeholder="Write a caption..."></textarea><br>
+
+        <label>Choose Filter:</label>
+        <select name="filter">
+            {% for f in filters %}
+            <option value="{{ f }}">{{ f }}</option>
+            {% endfor %}
+        </select><br>
+
+        <button class="btn" type="submit">Post</button>
+    </form>
+
     <a href="/" class="back-link">← Back to Home</a>
 </div>
+
+<script>
+let stream;
+let mediaRecorder;
+let recordedChunks = [];
+
+function switchTab(tab){
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.upload-form').forEach(f=>f.classList.remove('active'));
+
+    if(tab === 'gallery'){
+        event.target.classList.add('active');
+        document.getElementById('gallery-form').classList.add('active');
+        document.getElementById('camera-preview').style.display='none';
+        document.getElementById('camera-controls').style.display='none';
+        if(stream) stream.getTracks().forEach(t=>t.stop());
+    }
+    if(tab === 'camera'){
+        event.target.classList.add('active');
+        document.getElementById('camera-form').classList.add('active');
+        document.getElementById('camera-preview').style.display='block';
+        document.getElementById('camera-controls').style.display='block';
+        startCamera();
+    }
+}
+
+async function startCamera(){
+    try{
+        stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}, audio:true});
+        document.getElementById('camera-preview').srcObject = stream;
+    }catch(err){
+        alert("Camera Error: " + err.message);
+    }
+}
+
+// RECORD VIDEO
+document.getElementById('start-record').onclick = () => {
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(stream, {mimeType: 'video/webm'});
+    mediaRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, {type: 'video/webm'});
+        const file = new File([blob], "minitik_video.webm", {type: 'video/webm'});
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        document.getElementById('recorded-file').files = dt.files;
+        alert("✅ Video recorded! Add caption and Post.");
+    };
+    mediaRecorder.start();
+    document.getElementById('start-record').style.display='none';
+    document.getElementById('stop-record').style.display='inline-block';
+}
+
+document.getElementById('stop-record').onclick = () => {
+    mediaRecorder.stop();
+    document.getElementById('stop-record').style.display='none';
+    document.getElementById('start-record').style.display='inline-block';
+}
+
+// TAKE PHOTO
+document.getElementById('take-photo').onclick = () => {
+    const video = document.getElementById('camera-preview');
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080; canvas.height = 1920; // 9:16 TikTok ratio
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(blob => {
+        const file = new File([blob], "minitik_photo.jpg", {type: 'image/jpeg'});
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        document.getElementById('recorded-file').files = dt.files;
+        alert("✅ Photo taken! Add caption and Post.");
+    }, 'image/jpeg', 0.9);
+}
+</script>
 {% endblock %}
