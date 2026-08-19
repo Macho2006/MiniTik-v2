@@ -3,6 +3,9 @@
 <head>
     <title>MiniTik</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#ff0050">
+    <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/static/sw.js');}</script>
     <style>
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; }
@@ -75,7 +78,7 @@
         <a href="/">Home</a>
         <a href="/upload">Upload</a>
         <a href="/trending">Trending</a>
-        <a href="/following">Following</a>
+        <a href="/following_list">Following</a> <!-- FIXED: was /following -->
         <a href="/friends">Discover</a>
         <a href="/search">Search</a>
         <a href="/dm_inbox">DM</a>
@@ -102,9 +105,9 @@
     <!-- BOTTOM NAV FOR MOBILE -->
     <div class="bottom-nav">
       <a href="/" class="{{ 'active' if tab=='foryou' or tab=='following' else '' }}"><span class="nav-icon">🏠</span>Home</a>
-      <a href="/search"><span class="nav-icon">🔍</span>Discover</a>
+      <a href="/search" class="{{ 'active' if tab=='search' else '' }}"><span class="nav-icon">🔍</span>Discover</a> <!-- FIXED: added active -->
       <a href="/upload"><div class="plus-btn">+</div></a>
-      <a href="/dm_inbox"><span class="nav-icon">📥</span>Inbox</a>
+      <a href="/dm_inbox" class="{{ 'active' if tab=='dm' else '' }}"><span class="nav-icon">📥</span>Inbox</a> <!-- FIXED: added active -->
       <a href="/profile/{{current_user.username}}" class="{{ 'active' if tab=='profile' else '' }}"><span class="nav-icon">👤</span>Me</a>
     </div>
 </body>
