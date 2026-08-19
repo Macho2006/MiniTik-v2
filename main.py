@@ -166,6 +166,7 @@ def signup():
             conn.close()
     return render_template('signup.html')
 
+# ===== FIXED LOGIN ROUTE =====
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -176,15 +177,13 @@ def login():
         if user and check_password_hash(user['password_hash'], request.form['password']):
             if user['banned']: flash('You are banned'); return redirect('/login')
             user_obj = User(user['id'], user['username'], user['is_admin'], user['profile_pic'])
-            login_user(user_obj, remember=True) # KEY CHANGE HERE
+            login_user(user_obj, remember=True)
+            session.permanent = True # KEY FIX: keeps you logged in 30 days
             flash(f'Welcome back {user["username"]}!')
             return redirect('/')
         flash('Invalid login')
     return render_template('login.html')
-
-login_user(user_obj, remember=True)
-session.permanent = True # ADD THIS LINE
-flash(f'Welcome back {user["username"]}!')
+# ===== END FIXED LOGIN =====
 
 @app.route('/logout')
 @login_required
