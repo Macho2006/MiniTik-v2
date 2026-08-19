@@ -179,7 +179,12 @@ def settings():
 @login_required
 def index():
     conn = get_db(); c = conn.cursor()
-    c.execute("SELECT v.*, u.profile_pic, u.verified FROM videos v JOIN users u ON v.username=u.username ORDER BY timestamp DESC")
+    # UPDATED: Added comment_count
+    c.execute("""
+        SELECT v.*, u.profile_pic, u.verified,
+        (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
+        FROM videos v JOIN users u ON v.username=u.username ORDER BY timestamp DESC
+    """)
     videos = c.fetchall()
     twenty_four_hours_ago = time.time() - (24 * 60 * 60)
     c.execute("SELECT DISTINCT ON (s.username) s.*, u.profile_pic FROM stories s JOIN users u ON s.username=u.username WHERE s.timestamp > %s ORDER BY s.username, s.timestamp DESC", (twenty_four_hours_ago,))
@@ -313,6 +318,33 @@ def comment(video_id):
         create_notification(owner, current_user.username, 'comment', video_id, f'{current_user.username} commented on your video')
         conn.commit(); conn.close()
     return redirect(request.referrer or '/')
+
+# ===== NEW: COMMENTS PAGE =====
+@app.route('/comments_page/<int:video_id>')
+@login_required
+def comments_page(video_id):
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM comments WHERE video_id=%s ORDER BY timestamp DESC", (video_id,))
+    comments = c.fetchall()
+    c.execute("SELECT * FROM videos WHERE id=%s", (video_id,))
+    video = c.fetchone()
+    conn.close()
+    return render_template('comments.html', comments=comments, video=video)
+# ===== END NEW =====
+
+# ===== NEW: SINGLE VIDEO VIEW FOR SHARE =====
+@app.route('/video/<int:video_id>')
+def single_video(video_id):
+    conn = get_db(); c = conn.cursor()
+    c.execute("""
+        SELECT v.*, u.profile_pic, u.verified,
+        (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
+        FROM videos v JOIN users u ON v.username=u.username WHERE v.id=%s
+    """, (video_id,))
+    video = c.fetchone()
+    conn.close()
+    return render_template('index.html', videos=[video])
+# ===== END NEW =====
 
 @app.route('/search')
 @login_required
