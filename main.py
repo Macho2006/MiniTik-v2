@@ -5,25 +5,24 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from flask_session import Session
+
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import cloudinary, cloudinary.uploader
 from datetime import datetime, timedelta # FIXED: added timedelta
 
 app = Flask(__name__)
 
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024 # Lowered to 50MB for speed
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.secret_key = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 
-# ===== FIXED: SESSION CONFIG FOR RENDER HTTPS =====
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_PERMANENT'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30) # NEW: Stay logged in 30 days
-app.config['SESSION_COOKIE_SAMESITE'] = 'None' # NEW: Fix for modern browsers
-app.config['SESSION_COOKIE_SECURE'] = True # NEW: Required for https on Render
+# ===== FIXED: COOKIE-BASED LOGIN FOR RENDER + ALL PHONES =====
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'None'
+app.config['REMEMBER_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
 # ===== END FIX =====
 
-Session(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -157,14 +156,14 @@ def signup():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = clean_username(request.form['username']) # FIXED
+        username = clean_username(request.form['username'])
         conn = get_db(); c = conn.cursor()
         c.execute("SELECT * FROM users WHERE username=%s", (username,))
         user = c.fetchone(); conn.close()
         if user and check_password_hash(user['password_hash'], request.form['password']):
             if user['banned']: flash('You are banned'); return redirect('/login')
             user_obj = User(user['id'], user['username'], user['is_admin'], user['profile_pic'])
-            login_user(user_obj)
+            login_user(user_obj, remember=True) # KEY CHANGE HERE
             flash(f'Welcome back {user["username"]}!')
             return redirect('/')
         flash('Invalid login')
