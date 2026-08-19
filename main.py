@@ -523,5 +523,33 @@ def reset_admin():
     conn.commit(); conn.close()
     return "MachoDev RESET! Username: MachoDev Password: admin123"
 
+# ===== NEW: REAL TIME CHAT API ROUTES =====
+@app.route('/dm_send/<username>', methods=['POST'])
+@login_required
+def dm_send(username):
+    username = clean_username(username)
+    msg = request.form.get('message', '')
+    if msg.strip():
+        conn = get_db(); c = conn.cursor()
+        c.execute("INSERT INTO messages (sender, receiver, message, timestamp) VALUES (%s,%s,%s,%s)",
+                  (current_user.username, username, msg, time.time()))
+        create_notification(username, current_user.username, 'message', 0, f'{current_user.username} sent you a message')
+        conn.commit(); conn.close()
+        return jsonify({'status': 'ok'})
+    return jsonify({'status': 'error'})
+
+@app.route('/dm_get/<username>')
+@login_required
+def dm_get(username):
+    username = clean_username(username)
+    last_id = request.args.get('last_id', 0, type=int)
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM messages WHERE ((sender=%s AND receiver=%s) OR (sender=%s AND receiver=%s)) AND id > %s ORDER BY timestamp",
+              (current_user.username, username, username, current_user.username, last_id))
+    messages = c.fetchall()
+    conn.close()
+    return jsonify(messages)
+# ===== END REAL TIME CHAT API =====
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
