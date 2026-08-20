@@ -20,6 +20,10 @@
 .post-card video,.post-card img{width:100%;max-width:600px;border-radius:10px}
 .caption{color:#ccc;margin:10px 0}
 .actions{display:flex;gap:20px;margin-top:10px}
+
+/* FIX 1: AJAX FOLLOW BUTTON */
+.follow-ajax-btn{background:#ff0050;border:none;color:#fff}
+.follow-ajax-btn.following{background:#555}
 </style>
 
 <div class="profile-container">
@@ -53,7 +57,10 @@
         {% endif %}
 
         {% if user.username != current_user %}
-        <a href="/follow/{{ user.username }}" class="btn">{% if is_following %}Following{% else %}Follow{% endif %}</a>
+        <!-- FIX 2: AJAX FOLLOW INSTEAD OF RELOAD -->
+        <button class="btn follow-ajax-btn {{ 'following' if is_following else '' }}" onclick="toggleFollowProfile('{{ user.username }}', this)">
+            {{ 'Following' if is_following else 'Follow' }}
+        </button>
         <a href="/dm/{{ user.username }}" class="btn btn-message">Message</a>
         {% endif %}
     </div>
@@ -68,14 +75,17 @@
                     {% if video['type'] == 'image' %}
                         <img src="{{ video['video'] }}">
                     {% else %}
-                        <video controls src="{{ video['video'] }}"></video>
+                        <video controls src="{{ video['video'] }}" playsinline></video> <!-- FIX 3: added playsinline for iPhone -->
                     {% endif %}
                     
                     <p class="caption">{{ video['caption'] }}</p>
                     <p style="color:#888;font-size:12px">Filter: {{ video['filter'] }}</p>
                     
                     <div class="actions">
-                        <a href="/like/{{ video['id'] }}" style="color:white; text-decoration:none;">❤️ {{ video['likes'] }}</a>
+                        <!-- FIX 2: AJAX LIKE -->
+                        <a href="#" class="like-btn-profile" data-id="{{ video['id'] }}" style="color:white; text-decoration:none;">
+                            ❤️ <span class="like-count">{{ video['likes'] }}</span>
+                        </a>
                         <a href="/comments_page/{{ video['id'] }}" style="color:white; text-decoration:none;">💬 Comment</a>
                         
                         {% if current_user == 'MachoDev' or video['username'] == current_user %}
@@ -89,4 +99,35 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+// FIX 2: AJAX FOLLOW FOR PROFILE
+async function toggleFollowProfile(username, btn){
+    const res = await fetch(`/follow_ajax/${username}`);
+    const data = await res.json();
+    if(data.status == 'followed'){
+        btn.innerText = 'Following';
+        btn.classList.add('following');
+    } else {
+        btn.innerText = 'Follow';
+        btn.classList.remove('following');
+    }
+    // Update follower count
+    const stat = document.querySelector('.stat b');
+    let count = parseInt(stat.innerText);
+    stat.innerText = data.status == 'followed' ? count + 1 : count - 1;
+}
+
+// FIX 2: AJAX LIKE FOR PROFILE
+document.querySelectorAll('.like-btn-profile').forEach(btn=>{
+    btn.onclick = async (e)=>{
+        e.preventDefault();
+        const videoId = btn.dataset.id;
+        const res = await fetch(`/like/${videoId}`);
+        const data = await res.json();
+        btn.querySelector('.like-count').innerText = data.likes;
+        btn.style.color = data.status == 'liked' ? '#ff0050' : '#fff';
+    }
+})
+</script>
 {% endblock %}
