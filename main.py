@@ -24,9 +24,9 @@ app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember'
 app.config['SESSION_COOKIE_NAME'] = 'minitik_session'
 
 if is_prod: # ONLY use Secure on Render production
-    app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'None' # FIX: CHANGED FROM Lax
     app.config['REMEMBER_COOKIE_SECURE'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None' # FIX: CHANGED FROM Lax
     app.config['SESSION_COOKIE_SECURE'] = True
 else: # Local dev
     app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
@@ -180,6 +180,7 @@ def login():
             user_obj = User(user['id'], user['username'], user['is_admin'], user['profile_pic'])
             login_user(user_obj, remember=True)
             session.permanent = True # KEY FIX: keeps you logged in 30 days
+            session['user_id'] = user_obj.id # NEW: FORCE SESSION
             flash(f'Welcome back {user["username"]}!')
             return redirect('/')
         flash('Invalid login')
@@ -191,6 +192,13 @@ def login():
 def logout():
     logout_user()
     return redirect('/login')
+
+# ===== NEW: DEBUG ROUTE TO TEST SESSION =====
+@app.route('/whoami')
+@login_required
+def whoami():
+    return f"Logged in as: {current_user.username} | ID: {current_user.id} | Session: {session.get('user_id')}"
+# ===== END DEBUG ROUTE =====
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
