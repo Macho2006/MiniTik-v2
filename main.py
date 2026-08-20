@@ -203,17 +203,50 @@ def whoami():
 @login_required
 def settings():
     if request.method == 'POST':
-        file = request.files['profile_pic']
-        if file and allowed_file(file.filename):
-            upload_result = cloudinary.uploader.upload(file, folder="minitik_pfps")
-            pic_url = upload_result['secure_url']
-            conn = get_db(); c = conn.cursor()
-            c.execute("UPDATE users SET profile_pic=%s WHERE username=%s", (pic_url, current_user.username))
-            conn.commit(); conn.close()
-            flash('Profile picture updated!')
-            return redirect('/settings')
-    return render_template('settings.html')
+        action = request.form.get('action')
+        conn = get_db(); c = conn.cursor()
 
+        # FORM 1: UPLOAD PFP
+        if action == 'upload_pfp':
+            file = request.files.get('profile_pic')
+            if file and allowed_file(file.filename):
+                upload_result = cloudinary.uploader.upload(file, folder="minitik_pfps")
+                pic_url = upload_result['secure_url']
+                c.execute("UPDATE users SET profile_pic=%s WHERE username=%s", (pic_url, current_user.username))
+                conn.commit(); conn.close()
+                flash('Profile picture updated!')
+                return redirect('/settings')
+            else:
+                flash('Invalid file type')
+
+        # FORM 2: UPDATE USERNAME + BIO - NEW
+        elif action == 'update_info':
+            new_username = clean_username(request.form.get('username'))
+            new_bio = request.form.get('bio', '')
+            
+            # Check if username is taken
+            c.execute("SELECT 1 FROM users WHERE username=%s AND username!=%s", (new_username, current_user.username))
+            if c.fetchone():
+                flash('Username already taken')
+            else:
+                c.execute("UPDATE users SET username=%s, bio=%s WHERE username=%s", (new_username, new_bio, current_user.username))
+                conn.commit()
+                flash('Profile updated!')
+                # Need to logout and login again for username change to reflect
+                logout_user()
+                return redirect('/login')
+        
+        conn.close()
+        return redirect('/settings')
+
+    # Add bio to current_user so template can use it
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT bio FROM users WHERE username=%s", (current_user.username,))
+    user_data = c.fetchone()
+    conn.close()
+    current_user.bio = user_data['bio'] if user_data else ''
+    
+    return render_template('settings.html')
 @app.route('/')
 @login_required
 def index():
