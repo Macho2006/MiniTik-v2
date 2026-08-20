@@ -3,9 +3,8 @@
 <style>
 .video-feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
 .video-item { height: 100vh; scroll-snap-align: start; position: relative; background:#000; display:flex; align-items:center; justify-content:center }
-.video-item .main-media { width: 100%; height: 100%; object-fit: cover; } /* KEY: main video clear */
+.video-item .main-media { width: 100%; height: 100%; object-fit: cover; }
 
-/* ===== BIGGER SIDE BUTTONS - TIKTOK STYLE ===== */
 .side-actions { 
     position: absolute; 
     right: 16px;
@@ -33,54 +32,51 @@
     object-fit:cover 
 }
 
-/* BIGGER FOLLOW BUTTON UNDER PFP */
 .follow-btn-side{
     background:#ff0050;color:#fff;border:none;padding:4px 10px;
     border-radius:20px;font-size:11px;font-weight:bold;margin-top:5px;
     cursor:pointer;display:block;width:66px
 }
 .follow-btn-side.following{background:#555}
+.follow-btn-info{ /* FIX 1: ADD THIS - was missing */
+    background:#ff0050;color:#fff;border:none;padding:4px 10px;
+    border-radius:20px;font-size:11px;font-weight:bold;margin-left:10px;
+    cursor:pointer
+}
+.follow-btn-info.following{background:#555}
 
-/* NEW: LIKE BUTTON COLOR FIX */
-.like-btn{color:#fff;font-size:28px} /* WHITE BY DEFAULT */
-.like-btn.liked{color:#ff0050} /* RED WHEN LIKED */
+.like-btn{color:#fff;font-size:28px}
+.like-btn.liked{color:#ff0050}
 
-/* NEW: NEW VIDEOS BANNER */
 .new-videos-banner{display:none;background:#ff0050;color:#fff;text-align:center;padding:12px;font-weight:600;position:fixed;top:calc(50px + env(safe-area-inset-top));left:0;right:0;z-index:999;cursor:pointer}
 
 .video-info { 
     position: absolute; 
-    bottom: calc(90px + env(safe-area-inset-bottom)); /* KEY FIX: match side buttons */
+    bottom: calc(90px + env(safe-area-inset-bottom));
     left: 15px; 
     right: 80px; 
     z-index:10;
     color: #fff;
 }
 .video-info .user-row{display:flex;align-items:center;gap:10px}
-.video-info p{ text-shadow: 0 0 3px rgba(0,0,0,0.8); } /* make caption readable */
+.video-info p{ text-shadow: 0 0 3px rgba(0,0,0,0.8); }
 
-/* FIX: HIDE THE MIDDLE CARD */
-.old-card{display:none !important} /* HIDDEN BUT NOT REMOVED */
+.old-card{display:none !important}
 
 @media (max-width: 768px) { h1 { display:none } .container { padding:0 } }
 
-/* FIX BODY FOR SAFE AREA */
 body { padding-bottom: env(safe-area-inset-bottom); }
 </style>
 
-<!-- NEW: BANNER FOR NEW VIDEOS -->
 <div class="new-videos-banner" id="new-banner">New videos available - Tap to refresh</div>
 
 <div class="video-feed" id="video-feed">
 {% if videos %}
     {% for video in videos %}
     <div class="video-item" data-id="{{video['id']}}">
-        <!-- YOUR ORIGINAL CARD WRAPPED - KEPT 100% BUT HIDDEN -->
         <div class="old-card" style="background:#111;padding:15px;margin:20px 0;border-radius:10px; position:absolute; z-index:1; width:90%; max-width:500px">
             <div style="display:flex;align-items:center">
                 <p><b><a href="/profile/{{ video['username'] }}">@{{ video['username'] }}</a></b></p>
-                
-                <!-- NEW: FOLLOW BUTTON IN CARD -->
                 {% if video['username'] != current_user %}
                 <button class="follow-btn-info {{ 'following' if video['username'] in following else '' }}" 
                         onclick="toggleFollow('{{video['username']}}', this)">
@@ -88,34 +84,28 @@ body { padding-bottom: env(safe-area-inset-bottom); }
                 </button>
                 {% endif %}
             </div>
-            
             {% if video['type'] == 'image' %}
                 <img src="{{ video['video'] }}" style="width:100%;border-radius:10px">
             {% else %}
                 <video src="{{ video['video'] }}" style="width:100%;border-radius:10px"></video>
             {% endif %}
-
             <p>{{ video['caption'] }}</p>
             <p style="color:#888;font-size:12px">Filter: {{ video['filter'] }}</p>
-            
             <a href="/like/{{ video['id'] }}">❤️ {{ video['likes'] }}</a> | 
             <a href="/comments_page/{{ video['id'] }}">💬 Comment</a>
         </div>
 
-        <!-- BACKGROUND FULLSCREEN MEDIA - REMOVED BLUR -->
         {% if video['type'] == 'image' %}
             <img src="{{ video['video'] }}" class="main-media">
         {% else %}
             <video src="{{ video['video'] }}" autoplay loop muted playsinline class="main-media" preload="metadata"></video>
         {% endif %}
 
-        <!-- RIGHT SIDE BUTTONS - UPDATED -->
         <div class="side-actions">
             <div class="action-btn">
                 <a href="/profile/{{ video['username'] }}">
                     <img src="{{ video['profile_pic']|default('https://i.imgur.com/8Km9tLL.png') }}">
                 </a>
-                <!-- NEW: FOLLOW BUTTON UNDER PFP -->
                 {% if video['username'] != current_user %}
                 <button class="follow-btn-side {{ 'following' if video['username'] in following else '' }}" 
                         onclick="toggleFollow('{{video['username']}}', this)">
@@ -123,7 +113,7 @@ body { padding-bottom: env(safe-area-inset-bottom); }
                 </button>
                 {% endif %}
             </div>
-            <a href="/like/{{ video['id'] }}" class="action-btn like-btn {{ 'liked' if video['id'] in liked_video_ids else '' }}">
+            <a href="#" class="action-btn like-btn {{ 'liked' if video['id'] in liked_video_ids else '' }}" data-id="{{video['id']}}"> <!-- FIX 2: href=# to prevent reload -->
                 ❤️<br>{{ video['likes'] }}
             </a>
             <a href="/comments_page/{{ video['id'] }}" class="action-btn">
@@ -132,11 +122,9 @@ body { padding-bottom: env(safe-area-inset-bottom); }
             <div class="action-btn" onclick="copyLink('{{video['id']}}')">📤<br>Share</div>
         </div>
 
-        <!-- BOTTOM INFO -->
         <div class="video-info">
             <div class="user-row">
                 <p><b><a href="/profile/{{ video['username'] }}" style="color:#fff">@{{ video['username'] }}</a></b></p>
-                <!-- NEW: FOLLOW BUTTON IN BOTTOM INFO -->
                 {% if video['username'] != current_user %}
                 <button class="follow-btn-info {{ 'following' if video['username'] in following else '' }}" 
                         onclick="toggleFollow('{{video['username']}}', this)">
@@ -156,19 +144,15 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 </div>
 
 <script>
-// GET CURRENT TAB FROM URL
 const currentTab = window.location.pathname.includes('following') ? 'following' : 
                    window.location.pathname.includes('trending') ? 'trending' : 'foryou';
 
 let lastId = Math.max(0, ...Array.from(document.querySelectorAll('.video-item')).map(v=>parseInt(v.dataset.id)||0));
 let newVideosBuffer = [];
 
-// NEW: AJAX FOLLOW FUNCTION - ADDED
 async function toggleFollow(username, btn){
     const res = await fetch(`/follow_ajax/${username}`);
     const data = await res.json();
-    
-    // Update ALL buttons for this username
     document.querySelectorAll(`button[onclick*="${username}"]`).forEach(b=>{
         if(data.status == 'followed'){
             b.innerText = 'Following';
@@ -180,13 +164,13 @@ async function toggleFollow(username, btn){
     });
 }
 
-// NEW: AJAX LIKE FUNCTION - WHITE TO RED - FIXED
+// FIX 3: AJAX LIKE - use data-id instead of closest
 document.querySelectorAll('.like-btn').forEach(btn=>{
     btn.onclick = async (e)=>{
         e.preventDefault();
-        const videoId = btn.closest('.video-item').dataset.id;
+        const videoId = btn.dataset.id;
         const res = await fetch(`/like/${videoId}`);
-        const data = await res.json(); // USE SERVER RESPONSE
+        const data = await res.json();
         if(data.status == 'liked'){
             btn.classList.add('liked');
         } else {
@@ -196,13 +180,12 @@ document.querySelectorAll('.like-btn').forEach(btn=>{
     }
 })
 
-// FIX 2: ONLY PLAY 1 VIDEO AT A TIME - FAST SCROLL
 const videos = document.querySelectorAll('.video-item video');
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     const video = entry.target;
     if(entry.isIntersecting){ 
-        video.play();
+        video.play().catch(()=>{});
         video.muted = false;
     } else {
         video.pause();
@@ -213,12 +196,10 @@ const observer = new IntersectionObserver((entries) => {
 }, {threshold: 0.8});
 videos.forEach(v => observer.observe(v));
 
-// NEW: CHECK FOR NEW VIDEOS EVERY 5 SECONDS
 setInterval(async () => {
     try{
         const res = await fetch(`/api/feed?tab=${currentTab}&last_id=${lastId}`);
         const newVideos = await res.json();
-        
         if(newVideos.length > 0){
             newVideosBuffer = newVideos.concat(newVideosBuffer);
             const banner = document.getElementById('new-banner');
@@ -228,7 +209,6 @@ setInterval(async () => {
     }catch(e){}
 }, 5000);
 
-// TAP BANNER TO LOAD NEW VIDEOS
 document.getElementById('new-banner').onclick = () => {
     const feed = document.getElementById('video-feed');
     newVideosBuffer.forEach(v => {
@@ -240,11 +220,9 @@ document.getElementById('new-banner').onclick = () => {
         const followBtn = v.username != "{{current_user}}" 
             ? `<button class="follow-btn-info" onclick="toggleFollow('${v.username}', this)">Follow</button>` 
             : '';
-            
         const followBtnSide = v.username != "{{current_user}}" 
             ? `<button class="follow-btn-side" onclick="toggleFollow('${v.username}', this)">Follow</button>` 
             : '';
-        
         const media = v.type == 'image' 
             ? `<img src="${v.video}" class="main-media">`
             : `<video src="${v.video}" autoplay loop muted playsinline class="main-media" preload="metadata"></video>`;
@@ -266,7 +244,7 @@ document.getElementById('new-banner').onclick = () => {
                     <a href="/profile/${v.username}"><img src="${v.profile_pic||'https://i.imgur.com/8Km9tLL.png'}"></a>
                     ${followBtnSide}
                 </div>
-                <a href="/like/${v.id}" class="action-btn like-btn">❤️<br>${v.likes}</a>
+                <a href="#" class="action-btn like-btn" data-id="${v.id}">❤️<br>${v.likes}</a> <!-- FIX: added data-id -->
                 <a href="/comments_page/${v.id}" class="action-btn">💬<br>${v.comment_count||0}</a>
                 <div class="action-btn" onclick="copyLink('${v.id}')">📤<br>Share</div>
             </div>
@@ -279,8 +257,6 @@ document.getElementById('new-banner').onclick = () => {
             </div>
         `;
         feed.prepend(div);
-        
-        // Observe new video for autoplay
         const newVideo = div.querySelector('video');
         if(newVideo) observer.observe(newVideo);
     });
@@ -288,7 +264,6 @@ document.getElementById('new-banner').onclick = () => {
     document.getElementById('new-banner').style.display = 'none';
 }
 
-// NEW: SHARE BUTTON
 function copyLink(videoId) {
     const url = window.location.origin + '/video/' + videoId;
     navigator.clipboard.writeText(url);
