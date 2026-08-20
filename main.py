@@ -16,28 +16,27 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1) 
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 
-# ===== FINAL COOKIE FIX FOR RENDER V4 - SAMESITE=NONE =====
-is_prod = os.environ.get('RENDER') == 'true' # Render sets this automatically
+# ===== FINAL COOKIE FIX FOR RENDER V4 - THIS IS THE ONE =====
+is_prod = os.environ.get('RENDER') == 'true'
 
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember'
 app.config['SESSION_COOKIE_NAME'] = 'minitik_session'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 
-if is_prod: # ONLY use Secure on Render production
-    app.config['REMEMBER_COOKIE_SAMESITE'] = 'None' # FIX: WAS Lax
+if is_prod: 
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'None' # CHANGED FROM Lax
     app.config['REMEMBER_COOKIE_SECURE'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'None' # FIX: WAS Lax
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None' # CHANGED FROM Lax
     app.config['SESSION_COOKIE_SECURE'] = True
-else: # Local dev
-    app.config['REMEMBER_COOKIE_SAMESITE'] = 'None'
+else: 
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
     app.config['REMEMBER_COOKIE_SECURE'] = False
-    app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_SECURE'] = False
 
 app.config['SESSION_COOKIE_DOMAIN'] = None
 # ===== END FIX =====
-
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
