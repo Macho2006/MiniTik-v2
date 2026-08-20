@@ -36,6 +36,8 @@ else:
     app.config['SESSION_COOKIE_SECURE'] = False
 
 app.config['SESSION_COOKIE_DOMAIN'] = None
+app.config['SESSION_COOKIE_NAME'] = 'minitik_session_v2' # ADDED _v2
+app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember_v2' # ADDED _v2
 # ===== END FIX =====
 login_manager = LoginManager()
 login_manager.init_app(app)
