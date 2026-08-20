@@ -30,9 +30,9 @@ if is_prod: # ONLY use Secure on Render production
     app.config['SESSION_COOKIE_SAMESITE'] = 'None' # FIX: WAS Lax
     app.config['SESSION_COOKIE_SECURE'] = True
 else: # Local dev
-    app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'None'
     app.config['REMEMBER_COOKIE_SECURE'] = False
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'
     app.config['SESSION_COOKIE_SECURE'] = False
 
 app.config['SESSION_COOKIE_DOMAIN'] = None
