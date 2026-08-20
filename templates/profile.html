@@ -1,133 +1,114 @@
 {% extends "base.html" %}
+{% block title %}{{ user.username }} | MiniTik{% endblock %}
+
 {% block content %}
 <style>
-.profile-container{max-width:700px;margin:0 auto;padding:20px}
-.profile-header{text-align:center;margin-bottom:30px}
-.avatar-lg{width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid #ff0050;margin-bottom:10px}
-.username{font-size:28px;margin:5px 0}
-.verified{color:#00f2ea;font-size:22px}
-.bio{color:#aaa;margin:10px 0}
+.profile-header{text-align:center;padding:20px 10px}
+.pfp{width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid #fe2c55}
+.username{font-size:22px;font-weight:700;margin-top:10px}
+.handle{color:#888;font-size:14px}
 .stats{display:flex;justify-content:center;gap:30px;margin:15px 0}
-.stat b{font-size:22px;color:#ff0050;display:block}
-.meta{color:#888;font-size:14px}
-.btn{padding:10px 18px;margin:5px;background:#222;border:1px solid #333;border-radius:20px;color:white;cursor:pointer;text-decoration:none;display:inline-block;font-weight:500}
-.btn:hover{border-color:#ff0050}
-.btn-live{background:#ff0050;border:none}
-.btn-message{background:#ff0050;border:none}
-.btn-logout{background:#ff0050;border:none;width:100%;margin-top:20px}
-.creator-tools{margin:20px 0;padding:15px;background:#111;border-radius:10px}
-.post-card{background:#111;padding:15px;margin:20px 0;border-radius:12px;border:1px solid #222}
-.post-card video,.post-card img{width:100%;max-width:600px;border-radius:10px}
-.caption{color:#ccc;margin:10px 0}
-.actions{display:flex;gap:20px;margin-top:10px}
-
-/* FIX 1: AJAX FOLLOW BUTTON */
-.follow-ajax-btn{background:#ff0050;border:none;color:#fff}
-.follow-ajax-btn.following{background:#555}
+.stat b{font-size:18px;display:block}
+.creator-tools{background:#111;border-radius:12px;padding:15px;margin:15px 10px}
+.creator-tools h3{text-align:center;margin-bottom:12px}
+.tools-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.tool-btn{background:#222;border:none;color:#fff;padding:10px;border-radius:8px;font-size:12px;cursor:pointer}
+.tool-btn.pink{background:#fe2c55}
+.profile-tabs{display:flex;justify-content:center;border-bottom:1px solid #333}
+.tab{padding:12px 20px;cursor:pointer;color:#888}
+.tab.active{color:#fff;border-bottom:2px solid #fff}
+.video-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px}
+.video-item{position:relative;aspect-ratio:9/16;background:#000}
+.video-item video,.video-item img{width:100%;height:100%;object-fit:cover}
+.video-views{position:absolute;bottom:5px;left:5px;color:#fff;font-size:12px;font-weight:600}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:60px;background:#000;display:flex;justify-content:space-around;align-items:center;border-top:1px solid #222}
+.nav-item{text-align:center;color:#888;font-size:10px;text-decoration:none}
+.nav-item.active{color:#fff}
+.upload-btn{background:linear-gradient(90deg,#25f4ee,#fe2c55);padding:5px 15px;border-radius:8px}
 </style>
 
-<div class="profile-container">
-    <div class="profile-header">
-        <img src="{{ user.profile_pic if user.profile_pic else '/static/default.jpg' }}" class="avatar-lg">
-        <h1 class="username">{{ user.username }} {% if user.get('verified') %}<span class="verified">✓</span>{% endif %}</h1>
-        <p class="bio">{{ user.bio if user.bio else 'No bio yet' }}</p>
-        
-        <div class="stats">
-            <div class="stat"><b>{{ user.followers | default(0) }}</b>Followers</div>
-            <div class="stat"><b>{{ user.total_likes | default(0) }}</b>Likes</div>
-            <div class="stat"><b>{{ videos | length }}</b>Posts</div>
-        </div>
-        
-        <p class="meta">📍 {{ user.region if user.region else 'Unknown' }} | 🎂 {{ user.dob if user.dob else 'N/A' }}</p>
-
-        {% if user.username == current_user %}
-        <div class="creator-tools">
-            <h3>Creator Tools</h3>
-            {% if user.get('verified') %}
-            <a href="/live" class="btn btn-live">🔴 Go Live</a>
-            <a href="/story/upload" class="btn">➕ Add Story</a>
-            <a href="/monetization" class="btn">💰 Monetization</a>
-            <a href="/analytics" class="btn">📊 Pro Mode</a>
-            {% endif %}
-            <a href="/page/create" class="btn">📄 Create Page</a>
-            <a href="/support" class="btn">🛟 Customer Care</a>
-        </div>
-        <!-- LOGOUT BUTTON - ONLY SHOWS ON YOUR OWN PROFILE -->
-        <a href="/logout" class="btn btn-logout">🚪 Logout</a>
-        {% endif %}
-
-        {% if user.username != current_user %}
-        <!-- FIX 2: AJAX FOLLOW INSTEAD OF RELOAD -->
-        <button class="btn follow-ajax-btn {{ 'following' if is_following else '' }}" onclick="toggleFollowProfile('{{ user.username }}', this)">
-            {{ 'Following' if is_following else 'Follow' }}
-        </button>
-        <a href="/dm/{{ user.username }}" class="btn btn-message">Message</a>
+<div class="profile-header">
+    <div style="position:relative;display:inline-block">
+        <img src="{{ user.profile_pic }}" class="pfp">
+        {% if current_user == user.username %}
+        <a href="/settings" style="position:absolute;bottom:0;right:0;background:#25f4ee;border-radius:50%;width:25px;height:25px;display:flex;align-items:center;justify-content:center;color:#000;text-decoration:none;font-weight:bold">+</a>
         {% endif %}
     </div>
-
-    <div class="posts">
-        <h3>Posts</h3>
-        {% if videos %}
-            {% for video in videos %}
-                <div class="post-card">
-                    <p><b><a href="/profile/{{ video['username'] }}" style="color:white">@{{ video['username'] }}</a></b></p>
-                    
-                    {% if video['type'] == 'image' %}
-                        <img src="{{ video['video'] }}">
-                    {% else %}
-                        <video controls src="{{ video['video'] }}" playsinline></video> <!-- FIX 3: added playsinline for iPhone -->
-                    {% endif %}
-                    
-                    <p class="caption">{{ video['caption'] }}</p>
-                    <p style="color:#888;font-size:12px">Filter: {{ video['filter'] }}</p>
-                    
-                    <div class="actions">
-                        <!-- FIX 2: AJAX LIKE -->
-                        <a href="#" class="like-btn-profile" data-id="{{ video['id'] }}" style="color:white; text-decoration:none;">
-                            ❤️ <span class="like-count">{{ video['likes'] }}</span>
-                        </a>
-                        <a href="/comments_page/{{ video['id'] }}" style="color:white; text-decoration:none;">💬 Comment</a>
-                        
-                        {% if current_user == 'MachoDev' or video['username'] == current_user %}
-                        <a href="/admin/delete_video/{{ video['id'] }}" style="color:red; font-weight:bold;" onclick="return confirm('Delete this post?')">🗑️ Delete</a>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endfor %}
-        {% else %}
-            <p style="text-align:center;color:#888">No posts yet</p>
-        {% endif %}
+    
+    <div class="username">{{ user.username }} {% if user.verified %}✓{% endif %}</div>
+    <div class="handle">@{{ user.username }}</div>
+    
+    <div class="stats">
+        <div class="stat"><b>{{ user.followers }}</b>Following</div>
+        <div class="stat"><b>{{ user.followers }}</b>Followers</div>
+        <div class="stat"><b>{{ user.total_likes }}</b>Likes</div>
     </div>
+
+    {% if current_user == user.username %}
+    <a href="/settings" style="background:#222;padding:6px 20px;border-radius:8px;color:#fff;text-decoration:none;font-size:14px">Edit Profile</a>
+    {% else %}
+    <a href="/follow/{{ user.username }}" class="tool-btn pink">{% if is_following %}Unfollow{% else %}Follow{% endif %}</a>
+    {% endif %}
+
+    <div style="margin-top:10px">{{ user.bio or 'No bio yet' }}</div>
+</div>
+
+{% if current_user == user.username %}
+<div class="creator-tools">
+    <h3>Creator Tools</h3>
+    <div class="tools-grid">
+        <a href="/story/upload" class="tool-btn">📹 Add Story</a>
+        <a href="/upload" class="tool-btn">⬆️ Upload</a>
+        <button class="tool-btn" onclick="alert('Coming Soon')">💰 Monetization</button>
+        <button class="tool-btn" onclick="alert('Coming Soon')">📊 Pro Mode</button>
+        <a href="/support" class="tool-btn">🛟 Customer Care</a>
+        <button class="tool-btn" onclick="alert('Coming Soon')">🔴 Go Live</button>
+    </div>
+</div>
+{% endif %}
+
+<div class="profile-tabs">
+    <div class="tab active" onclick="showTab('posts')">Posts</div>
+    <div class="tab" onclick="showTab('liked')">Liked</div>
+    <div class="tab" onclick="showTab('private')">🔒</div>
+</div>
+
+<div id="posts" class="video-grid">
+    {% for video in videos %}
+    <a href="/video/{{ video.id }}" class="video-item">
+        <video src="{{ video.video }}" muted></video>
+        <div class="video-views">▶ {{ video.likes }}</div>
+    </a>
+    {% endfor %}
+</div>
+
+<div id="liked" class="video-grid" style="display:none">
+    <p style="text-align:center;padding:40px;color:#888">Liked videos coming soon</p>
+</div>
+
+<div id="private" class="video-grid" style="display:none">
+    <p style="text-align:center;padding:40px;color:#888">Private videos</p>
+</div>
+
+{% if current_user != user.username %}
+<a href="/logout" style="margin:20px;display:block;text-align:center;background:#fe2c55;padding:12px;border-radius:8px;color:#fff;text-decoration:none">🚪 Logout</a>
+{% endif %}
+
+<!-- BOTTOM NAV - TIKTOK STYLE -->
+<div class="bottom-nav">
+    <a href="/" class="nav-item">🏠<br>Home</a>
+    <a href="/search" class="nav-item">🔍<br>Discover</a>
+    <a href="/upload" class="nav-item upload-btn">+</a>
+    <a href="/inbox" class="nav-item">📥<br>Inbox</a>
+    <a href="/profile" class="nav-item active">👤<br>Me</a>
 </div>
 
 <script>
-// FIX 2: AJAX FOLLOW FOR PROFILE
-async function toggleFollowProfile(username, btn){
-    const res = await fetch(`/follow_ajax/${username}`);
-    const data = await res.json();
-    if(data.status == 'followed'){
-        btn.innerText = 'Following';
-        btn.classList.add('following');
-    } else {
-        btn.innerText = 'Follow';
-        btn.classList.remove('following');
-    }
-    // Update follower count
-    const stat = document.querySelector('.stat b');
-    let count = parseInt(stat.innerText);
-    stat.innerText = data.status == 'followed' ? count + 1 : count - 1;
+function showTab(tab){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
+    document.querySelectorAll('.video-grid').forEach(g=>g.style.display='none')
+    event.target.classList.add('active')
+    document.getElementById(tab).style.display='grid'
 }
-
-// FIX 2: AJAX LIKE FOR PROFILE
-document.querySelectorAll('.like-btn-profile').forEach(btn=>{
-    btn.onclick = async (e)=>{
-        e.preventDefault();
-        const videoId = btn.dataset.id;
-        const res = await fetch(`/like/${videoId}`);
-        const data = await res.json();
-        btn.querySelector('.like-count').innerText = data.likes;
-        btn.style.color = data.status == 'liked' ? '#ff0050' : '#fff';
-    }
-})
 </script>
 {% endblock %}
