@@ -85,7 +85,7 @@
         <a href="/friends">Discover</a>
         <a href="/search">Search</a>
         <a href="/inbox">Inbox</a> <!-- FIXED: was /dm_inbox and /notifications -->
-        <a href="/profile">Profile</a> <!-- FIXED: was /profile/{{current_user.username}} -->
+        <a href="/profile/{{ current_user.username }}">Profile</a>
         {% if current_user.is_admin %}<a href="/admin" style="color:#ff0050">Admin</a>{% endif %}
         <a href="/logout">Logout</a>
     </nav>
