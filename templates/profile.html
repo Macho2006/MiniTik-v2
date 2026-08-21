@@ -12,7 +12,7 @@
 .creator-tools{background:#111;border-radius:12px;padding:15px;margin:15px 10px}
 .creator-tools h3{text-align:center;margin-bottom:12px}
 .tools-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.tool-btn{background:#222;border:none;color:#fff;padding:10px;border-radius:8px;font-size:12px;cursor:pointer}
+.tool-btn{background:#222;border:none;color:#fff;padding:10px;border-radius:8px;font-size:12px;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
 .tool-btn.pink{background:#fe2c55}
 .profile-tabs{display:flex;justify-content:center;border-bottom:1px solid #333}
 .tab{padding:12px 20px;cursor:pointer;color:#888}
@@ -25,6 +25,9 @@
 .nav-item{text-align:center;color:#888;font-size:10px;text-decoration:none}
 .nav-item.active{color:#fff}
 .upload-btn{background:linear-gradient(90deg,#25f4ee,#fe2c55);padding:5px 15px;border-radius:8px}
+
+/* NEW: BUTTON ROW FOR FOLLOW + MESSAGE */
+.btn-row{display:flex;gap:10px;justify-content:center;margin:10px 0}
 </style>
 
 <div class="profile-header">
@@ -44,10 +47,16 @@
         <div class="stat"><b>{{ user.total_likes }}</b>Likes</div>
     </div>
 
+    <!-- UPDATED BUTTONS: FOLLOW + MESSAGE -->
     {% if current_user == user.username %}
     <a href="/settings" style="background:#222;padding:6px 20px;border-radius:8px;color:#fff;text-decoration:none;font-size:14px">Edit Profile</a>
     {% else %}
-    <a href="/follow/{{ user.username }}" class="tool-btn pink">{% if is_following %}Unfollow{% else %}Follow{% endif %}</a>
+    <div class="btn-row">
+        <a href="/follow/{{ user.username }}" class="tool-btn pink">{% if is_following %}Unfollow{% else %}Follow{% endif %}</a>
+        
+        <!-- NEW MESSAGE BUTTON -->
+        <a href="/dm/{{ user.username }}" class="tool-btn">Message</a>
+    </div>
     {% endif %}
 
     <div style="margin-top:10px">{{ user.bio or 'No bio yet' }}</div>
