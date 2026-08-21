@@ -11,6 +11,7 @@ from datetime import datetime, timedelta # FIXED: added timedelta
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
+app.secret_key = 'your_secret'
 app.config['PREFERRED_URL_SCHEME'] = 'https' # FIX 1: Force https urls on Render
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1) # FIX 2: Added x_prefix=1
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
@@ -328,13 +329,16 @@ def profile(username):
     is_following = c.fetchone()
     conn.close()
     return render_template('profile.html', user=user, videos=videos, is_following=is_following, current_user=current_user.username, tab='profile')
-
+print(f"DEBUG: User {current_user.username} hit /profile/{username}")
+print(f"DEBUG: Is Authenticated: {current_user.is_authenticated}")
+# FIX 1: /profile redirects to logged in user's profile
 # FIX 1: /profile redirects to logged in user's profile
 @app.route('/profile')
 @login_required
 def my_profile():
-    return redirect(f'/profile/{current_user.username}')
-
+    print(f"DEBUG: User {current_user.username} hit /profile")
+    print(f"DEBUG: Is Authenticated: {current_user.is_authenticated}")
+    return redirect(url_for('profile', username=current_user.username))
 # FIX 2: /profile/ with slash also redirects
 @app.route('/profile/')
 @login_required
