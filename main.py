@@ -11,6 +11,7 @@ from datetime import datetime, timedelta # FIXED: added timedelta
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
+app.config['SESSION_PERMANENT'] = True
 app.secret_key = 'your_secret'
 app.config['PREFERRED_URL_SCHEME'] = 'https' # FIX 1: Force https urls on Render
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1) # FIX 2: Added x_prefix=1
@@ -169,7 +170,7 @@ def signup():
             conn.close()
     return render_template('signup.html')
 
-# ===== FIXED LOGIN ROUTE =====
+# ===== FINAL LOGIN ROUTE FOR RENDER =====
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -180,9 +181,7 @@ def login():
         if user and check_password_hash(user['password_hash'], request.form['password']):
             if user['banned']: flash('You are banned'); return redirect('/login')
             user_obj = User(user['id'], user['username'], user['is_admin'], user['profile_pic'])
-            login_user(user_obj, remember=True)
-            session.permanent = True # KEY FIX: keeps you logged in 30 days
-            session['user_id'] = user_obj.id # FIX: FORCE SESSION TO STICK
+            login_user(user_obj, remember=True, duration=timedelta(days=30)) # KEY: pass duration here
             flash(f'Welcome back {user["username"]}!')
             return redirect('/')
         flash('Invalid login')
