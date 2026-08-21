@@ -21,24 +21,23 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026
 is_prod = os.environ.get('RENDER') == 'true'
 
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
-app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember'
-app.config['SESSION_COOKIE_NAME'] = 'minitik_session'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_DOMAIN'] = None
 
-if is_prod: 
+if is_prod:
+    app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember_v2' # FIXED: _v2 inside prod
+    app.config['SESSION_COOKIE_NAME'] = 'minitik_session_v2' # FIXED: _v2 inside prod
     app.config['REMEMBER_COOKIE_SAMESITE'] = 'None' # CHANGED FROM Lax
     app.config['REMEMBER_COOKIE_SECURE'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'None' # CHANGED FROM Lax
     app.config['SESSION_COOKIE_SECURE'] = True
-else: 
+else:
+    app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember_v2' # FIXED: _v2 inside dev
+    app.config['SESSION_COOKIE_NAME'] = 'minitik_session_v2' # FIXED: _v2 inside dev
     app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
     app.config['REMEMBER_COOKIE_SECURE'] = False
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_SECURE'] = False
-
-app.config['SESSION_COOKIE_DOMAIN'] = None
-app.config['SESSION_COOKIE_NAME'] = 'minitik_session_v2' # ADDED _v2
-app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember_v2' # ADDED _v2
 # ===== END FIX =====
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -226,7 +225,7 @@ def settings():
         elif action == 'update_info':
             new_username = clean_username(request.form.get('username'))
             new_bio = request.form.get('bio', '')
-            
+
             # Check if username is taken
             c.execute("SELECT 1 FROM users WHERE username=%s AND username!=%s", (new_username, current_user.username))
             if c.fetchone():
@@ -238,7 +237,7 @@ def settings():
                 # Need to logout and login again for username change to reflect
                 logout_user()
                 return redirect('/login')
-        
+
         conn.close()
         return redirect('/settings')
 
@@ -248,7 +247,7 @@ def settings():
     user_data = c.fetchone()
     conn.close()
     current_user.bio = user_data['bio'] if user_data else ''
-    
+
     return render_template('settings.html')
 @app.route('/')
 @login_required
@@ -329,9 +328,7 @@ def profile(username):
     is_following = c.fetchone()
     conn.close()
     return render_template('profile.html', user=user, videos=videos, is_following=is_following, current_user=current_user.username, tab='profile')
-print(f"DEBUG: User {current_user.username} hit /profile/{username}")
-print(f"DEBUG: Is Authenticated: {current_user.is_authenticated}")
-# FIX 1: /profile redirects to logged in user's profile
+
 # FIX 1: /profile redirects to logged in user's profile
 @app.route('/profile')
 @login_required
@@ -343,7 +340,7 @@ def my_profile():
 @app.route('/profile/')
 @login_required
 def my_profile_slash():
-    return redirect(f'/profile/{current_user.username}')
+    return redirect(url_for('profile', username=current_user.username)) # FIXED: use url_for
 
 @app.route('/follow/<username>')
 @login_required
@@ -777,7 +774,6 @@ def api_feed():
             FROM videos v JOIN users u ON v.username=u.username WHERE v.id > %s
             ORDER BY timestamp DESC LIMIT 10
         """, (last_id,))
-
     videos = c.fetchall()
     conn.close()
     return jsonify(videos)
