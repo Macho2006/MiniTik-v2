@@ -333,17 +333,37 @@ def my_profile_redirect_slash():
 @login_required
 def profile(username):
     conn = get_db(); c = conn.cursor()
+    
+    # Get user
     c.execute("SELECT * FROM users WHERE username=%s", (username,))
     user = c.fetchone()
     if not user:
         conn.close()
         return "User not found", 404
+
+    # Get videos
     c.execute("SELECT * FROM videos WHERE username=%s ORDER BY id DESC", (username,))
     videos = c.fetchall()
+    
+    # NEW 1: Calculate total likes from all videos
+    total_likes = sum([v['likes'] for v in videos])
+    user['total_likes'] = total_likes
+    
+    # NEW 2: Get following count
+    c.execute("SELECT COUNT(*) as count FROM following WHERE follower=%s", (username,))
+    following_count = c.fetchone()['count']
+    
+    # NEW 3: Get followers count - real count from DB
+    c.execute("SELECT COUNT(*) as count FROM following WHERE following=%s", (username,))
+    followers_count = c.fetchone()['count']
+    user['followers'] = followers_count
+    
+    # Check if current user is following this profile
     c.execute("SELECT 1 FROM following WHERE follower=%s AND following=%s", (current_user.username, username))
     is_following = c.fetchone()
+    
     conn.close()
-    return render_template('profile.html', user=user, videos=videos, is_following=is_following, current_user=current_user.username, tab='profile')
+    return render_template('profile.html', user=user, videos=videos, is_following=is_following, following_count=following_count)
 # ===== END PROFILE ROUTES =====
 
 @app.route('/follow/<username>')
