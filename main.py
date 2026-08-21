@@ -17,7 +17,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1) 
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'minitik_secret_key_2026_change_this')
 
-# ===== FINAL COOKIE FIX FOR RENDER V4 - THIS IS THE ONE =====
+# ===== FINAL COOKIE FIX FOR RENDER V5 =====
 is_prod = os.environ.get('RENDER') == 'true'
 
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
@@ -25,15 +25,15 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_DOMAIN'] = None
 
 if is_prod:
-    app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember_v2' # FIXED: _v2 inside prod
-    app.config['SESSION_COOKIE_NAME'] = 'minitik_session_v2' # FIXED: _v2 inside prod
-    app.config['REMEMBER_COOKIE_SAMESITE'] = 'None' # CHANGED FROM Lax
+    app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember_v3' # BUMPED TO V3
+    app.config['SESSION_COOKIE_NAME'] = 'minitik_session_v3' # BUMPED TO V3
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'None'
     app.config['REMEMBER_COOKIE_SECURE'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'None' # CHANGED FROM Lax
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'
     app.config['SESSION_COOKIE_SECURE'] = True
 else:
-    app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember_v2' # FIXED: _v2 inside dev
-    app.config['SESSION_COOKIE_NAME'] = 'minitik_session_v2' # FIXED: _v2 inside dev
+    app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember_v3' # BUMPED TO V3
+    app.config['SESSION_COOKIE_NAME'] = 'minitik_session_v3' # BUMPED TO V3
     app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
     app.config['REMEMBER_COOKIE_SECURE'] = False
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
