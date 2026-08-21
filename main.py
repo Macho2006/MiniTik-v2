@@ -31,6 +31,7 @@ if is_prod:
     app.config['REMEMBER_COOKIE_SECURE'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'None'
     app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_DOMAIN'] = '.onrender.com'
 else:
     app.config['REMEMBER_COOKIE_NAME'] = 'minitik_remember_v3' # BUMPED TO V3
     app.config['SESSION_COOKIE_NAME'] = 'minitik_session_v3' # BUMPED TO V3
