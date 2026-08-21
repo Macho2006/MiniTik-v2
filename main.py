@@ -314,6 +314,36 @@ def trending():
         following = [r['following'] for r in c.fetchall()]
     conn.close()
     return render_template('index.html', videos=videos, current_user=current_user.username if current_user.is_authenticated else '', following=following, liked_video_ids=liked_video_ids, tab='trending')
+# FIX 1: /profile redirects to logged in user's profile
+@app.route('/profile')
+@login_required
+def my_profile():
+    print(f"DEBUG: User {current_user.username} hit /profile")
+    print(f"DEBUG: Is Authenticated: {current_user.is_authenticated}")
+    return redirect(url_for('profile', username=current_user.username))
+
+# FIX 2: /profile/ with slash also redirects
+@app.route('/profile/')
+@login_required
+def my_profile_slash():
+    return redirect(url_for('profile', username=current_user.username))
+
+
+@app.route('/profile/<username>')
+@login_required
+def profile(username):
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username=%s", (username,))
+    user = c.fetchone()
+    if not user:
+        conn.close()
+        return "User not found", 404
+    c.execute("SELECT * FROM videos WHERE username=%s ORDER BY id DESC", (username,))
+    videos = c.fetchall()
+    c.execute("SELECT 1 FROM following WHERE follower=%s AND following=%s", (current_user.username, username))
+    is_following = c.fetchone()
+    conn.close()
+    return render_template('profile.html', user=user, videos=videos, is_following=is_following, current_user=current_user.username)
 
 @app.route('/profile/<username>')
 @login_required
