@@ -250,6 +250,7 @@ def settings():
 
     return render_template('settings.html')
 @app.route('/')
+@app.route('/foryou')
 @login_required
 def index():
     conn = get_db(); c = conn.cursor()
@@ -292,6 +293,7 @@ def following_feed(): # Renamed to avoid conflict with /following users list
     following = [r['following'] for r in c.fetchall()]
     conn.close()
     return render_template('index.html', videos=videos, current_user=current_user.username, following=following, liked_video_ids=liked_video_ids, tab='following')
+
 
 @app.route('/trending')
 def trending():
