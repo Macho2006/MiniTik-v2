@@ -329,18 +329,6 @@ def profile(username):
     conn.close()
     return render_template('profile.html', user=user, videos=videos, is_following=is_following, current_user=current_user.username, tab='profile')
 
-# FIX 1: /profile redirects to logged in user's profile
-@app.route('/profile')
-@login_required
-def my_profile():
-    print(f"DEBUG: User {current_user.username} hit /profile")
-    print(f"DEBUG: Is Authenticated: {current_user.is_authenticated}")
-    return redirect(url_for('profile', username=current_user.username))
-# FIX 2: /profile/ with slash also redirects
-@app.route('/profile/')
-@login_required
-def my_profile_slash():
-    return redirect(url_for('profile', username=current_user.username)) # FIXED: use url_for
 
 @app.route('/follow/<username>')
 @login_required
