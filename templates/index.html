@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
+/* HIDE OLD BASE.HTML NAV FOR FEED ONLY */
+header, nav, .bottom-nav, .navbar { display: none !important; }
+
 /* === NEW TIKTOK TOP NAV - TRANSPARENT === */
 .top-nav-transparent {
     position: fixed;
@@ -11,7 +14,7 @@
     justify-content: center;
     align-items: center;
     gap: 24px;
-    padding: calc(16px + env(safe-area-inset-top)) 10px 10px; /* for iphone notch */
+    padding: calc(16px + env(safe-area-inset-top)) 10px 10px;
     background: transparent;
     z-index: 999;
     color: white;
@@ -37,10 +40,10 @@
     background: white;
 }
 
-/* === YOUR EXISTING CSS - KEPT 100% === */
+/* === YOUR EXISTING CSS === */
 .video-feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
 .video-item { height: 100vh; scroll-snap-align: start; position: relative; background:#000; display:flex; align-items:center; justify-content:center }
-.video-item .main-media { width: 100vw; height: 100vh; object-fit: cover; } /* CHANGED TO FULLSCREEN */
+.video-item .main-media { width: 100vw; height: 100vh; object-fit: cover; }
 
 .side-actions { 
     position: absolute; 
@@ -85,9 +88,9 @@
 }
 .follow-btn-info.following{background:#555}
 
-/* FIXED: WHITE TO RED LIKE BUTTON - TIKTOK STYLE */
+/* WHITE TO RED LIKE BUTTON */
 .like-btn{color:#fff;font-size:28px;text-decoration:none; transition: all 0.2s ease}
-.like-btn.liked{color:#ff0050; transform: scale(1.2);} /* RED WHEN LIKED */
+.like-btn.liked{color:#ff0050; transform: scale(1.2);}
 
 .new-videos-banner{display:none;background:#ff0050;color:#fff;text-align:center;padding:12px;font-weight:600;position:fixed;top:calc(50px + env(safe-area-inset-top));left:0;right:0;z-index:999;cursor:pointer}
 
@@ -103,9 +106,7 @@
 .video-info p{ text-shadow: 0 0 3px rgba(0,0,0,0.8); }
 
 .old-card{display:none !important}
-
-@media (max-width: 768px) { h1 { display:none } .container { padding:0 } }
-body { padding-bottom: env(safe-area-inset-bottom); margin:0; background:#000 } /* BLACK BG */
+body { padding-bottom: 0 !important; margin:0; background:#000 }
 </style>
 
 <!-- === NEW TRANSPARENT TOP NAV === -->
@@ -166,7 +167,7 @@ body { padding-bottom: env(safe-area-inset-bottom); margin:0; background:#000 } 
     {% endfor %}
 {% else %}
     <div style="height:100vh;display:flex;align-items:center;justify-content:center">
-        <p style="text-align:center;color:#888">No posts yet. <a href="/upload">Upload first!</a></p>
+        <p style="text-align:center;color:#888">No posts yet. <a href="/upload" style="color:#ff0050">Upload first!</a></p>
     </div>
 {% endif %}
 </div>
@@ -192,7 +193,7 @@ async function toggleFollow(username, btn){
     });
 }
 
-// FIXED AJAX LIKE - TURNS RED
+// AJAX LIKE
 document.querySelectorAll('.like-btn').forEach(btn=>{
     btn.onclick = async (e)=>{
         e.preventDefault();
@@ -200,9 +201,9 @@ document.querySelectorAll('.like-btn').forEach(btn=>{
         const res = await fetch(`/like/${videoId}`);
         const data = await res.json();
         if(data.status == 'liked'){
-            btn.classList.add('liked'); // TURNS RED
+            btn.classList.add('liked');
         } else {
-            btn.classList.remove('liked'); // BACK TO WHITE
+            btn.classList.remove('liked');
         }
         btn.innerHTML = `❤️<br>${data.likes}`;
     }
@@ -213,7 +214,7 @@ const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     const video = entry.target;
     if(entry.isIntersecting){ 
-        document.querySelectorAll('.video-item video').forEach(v => {if(v!=video){v.pause(); v.muted = true}}); // pause others
+        document.querySelectorAll('.video-item video').forEach(v => {if(v!=video){v.pause(); v.muted = true}});
         video.play().catch(()=>{});
         video.muted = false;
     } else {
@@ -225,7 +226,6 @@ const observer = new IntersectionObserver((entries) => {
 }, {threshold: 0.8});
 videos.forEach(v => observer.observe(v));
 
-// ... rest of your JS for new banner and copyLink stays the same ...
 setInterval(async () => {
     try{
         const res = await fetch(`/api/feed?tab=${currentTab}&last_id=${lastId}`);
@@ -239,7 +239,7 @@ setInterval(async () => {
     }catch(e){}
 }, 5000);
 
-document.getElementById('new-banner').onclick = () => { /* same as yours */ }
-function copyLink(videoId) { /* same as yours */ }
+document.getElementById('new-banner').onclick = () => { location.reload(); }
+function copyLink(videoId) { navigator.clipboard.writeText(window.location.origin + '/video/' + videoId); alert('Link copied!'); }
 </script>
 {% endblock %}
