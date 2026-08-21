@@ -1,13 +1,50 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
+/* === NEW TIKTOK TOP NAV - TRANSPARENT === */
+.top-nav-transparent {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 24px;
+    padding: calc(16px + env(safe-area-inset-top)) 10px 10px; /* for iphone notch */
+    background: transparent;
+    z-index: 999;
+    color: white;
+    font-weight: 600;
+    font-size: 17px;
+}
+.top-nav-transparent a {
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    position: relative;
+}
+.top-nav-transparent a.active {
+    color: white;
+    font-weight: 800;
+}
+.top-nav-transparent a.active::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: white;
+}
+
+/* === YOUR EXISTING CSS - KEPT 100% === */
 .video-feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
 .video-item { height: 100vh; scroll-snap-align: start; position: relative; background:#000; display:flex; align-items:center; justify-content:center }
-.video-item .main-media { width: 100%; height: 100%; object-fit: cover; }
+.video-item .main-media { width: 100vw; height: 100vh; object-fit: cover; } /* CHANGED TO FULLSCREEN */
 
 .side-actions { 
     position: absolute; 
-    right: 16px;
+    right: 12px;
     bottom: calc(100px + env(safe-area-inset-bottom));
     display: flex; 
     flex-direction: column; 
@@ -48,9 +85,9 @@
 }
 .follow-btn-info.following{background:#555}
 
-/* FIXED: WHITE TO RED LIKE BUTTON */
-.like-btn{color:#fff;font-size:28px;text-decoration:none}
-.like-btn.liked{color:#ff0050; transform: scale(1.1);}
+/* FIXED: WHITE TO RED LIKE BUTTON - TIKTOK STYLE */
+.like-btn{color:#fff;font-size:28px;text-decoration:none; transition: all 0.2s ease}
+.like-btn.liked{color:#ff0050; transform: scale(1.2);} /* RED WHEN LIKED */
 
 .new-videos-banner{display:none;background:#ff0050;color:#fff;text-align:center;padding:12px;font-weight:600;position:fixed;top:calc(50px + env(safe-area-inset-top));left:0;right:0;z-index:999;cursor:pointer}
 
@@ -68,8 +105,15 @@
 .old-card{display:none !important}
 
 @media (max-width: 768px) { h1 { display:none } .container { padding:0 } }
-body { padding-bottom: env(safe-area-inset-bottom); }
+body { padding-bottom: env(safe-area-inset-bottom); margin:0; background:#000 } /* BLACK BG */
 </style>
+
+<!-- === NEW TRANSPARENT TOP NAV === -->
+<div class="top-nav-transparent">
+    <a href="/following" class="{{ 'active' if 'following' in request.path else '' }}">Following</a>
+    <a href="/foryou" class="{{ 'active' if 'foryou' in request.path or request.path == '/' else '' }}">For You</a>
+    <a href="/trending" class="{{ 'active' if 'trending' in request.path else '' }}">Trending</a>
+</div>
 
 <div class="new-videos-banner" id="new-banner">New videos available - Tap to refresh</div>
 
@@ -148,7 +192,7 @@ async function toggleFollow(username, btn){
     });
 }
 
-// FIXED AJAX LIKE
+// FIXED AJAX LIKE - TURNS RED
 document.querySelectorAll('.like-btn').forEach(btn=>{
     btn.onclick = async (e)=>{
         e.preventDefault();
@@ -156,9 +200,9 @@ document.querySelectorAll('.like-btn').forEach(btn=>{
         const res = await fetch(`/like/${videoId}`);
         const data = await res.json();
         if(data.status == 'liked'){
-            btn.classList.add('liked');
+            btn.classList.add('liked'); // TURNS RED
         } else {
-            btn.classList.remove('liked');
+            btn.classList.remove('liked'); // BACK TO WHITE
         }
         btn.innerHTML = `❤️<br>${data.likes}`;
     }
