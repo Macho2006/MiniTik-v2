@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-/* ONLY HIDE OLD TOP HEADER FROM BASE.HTML. KEEP BOTTOM NAV */
-header, nav.navbar { display: none !important; }
+/* NUKE ALL OLD NAVS - THIS IS THE FIX FOR GHOST TEXT */
+header, nav, .navbar, .top-nav, .header { display: none !important; }
 
 /* === TIKTOK TOP NAV - TRANSPARENT === */
 .top-nav-transparent {
@@ -46,7 +46,7 @@ header, nav.navbar { display: none !important; }
     overflow-y: scroll; 
     scroll-snap-type: y mandatory; 
     background: #000;
-    padding-bottom: 80px; /* space for bottom nav */
+    padding-bottom: 80px;
 }
 .video-item { 
     height: 100vh; 
@@ -63,7 +63,7 @@ header, nav.navbar { display: none !important; }
     object-fit: cover; 
 }
 
-/* === SIDE ACTIONS - LIKE, COMMENT, SHARE === */
+/* === SIDE ACTIONS === */
 .side-actions { 
     position: absolute; 
     right: 12px;
@@ -111,10 +111,8 @@ header, nav.navbar { display: none !important; }
 .like-btn{color:#fff;font-size:28px;text-decoration:none; transition: all 0.2s ease}
 .like-btn.liked{color:#ff0050; transform: scale(1.2);}
 
-/* NEW VIDEOS BANNER */
 .new-videos-banner{display:none;background:#ff0050;color:#fff;text-align:center;padding:12px;font-weight:600;position:fixed;top:calc(50px + env(safe-area-inset-top));left:0;right:0;z-index:999;cursor:pointer}
 
-/* VIDEO INFO - USERNAME + CAPTION */
 .video-info { 
     position: absolute; 
     bottom: calc(90px + env(safe-area-inset-bottom));
@@ -267,7 +265,6 @@ async function toggleFollow(username, btn){
     });
 }
 
-// AJAX LIKE - TURNS RED
 document.querySelectorAll('.like-btn').forEach(btn=>{
     btn.onclick = async (e)=>{
         e.preventDefault();
@@ -283,7 +280,6 @@ document.querySelectorAll('.like-btn').forEach(btn=>{
     }
 })
 
-// AUTOPLAY VIDEOS ON SCROLL
 const videos = document.querySelectorAll('.video-item video');
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
@@ -301,7 +297,6 @@ const observer = new IntersectionObserver((entries) => {
 }, {threshold: 0.8});
 videos.forEach(v => observer.observe(v));
 
-// CHECK FOR NEW VIDEOS
 setInterval(async () => {
     try{
         const res = await fetch(`/api/feed?tab=${currentTab}&last_id=${lastId}`);
