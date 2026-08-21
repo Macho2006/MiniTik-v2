@@ -540,7 +540,7 @@ def search():
     c.execute("SELECT * FROM videos WHERE caption ILIKE %s ORDER BY likes DESC LIMIT 20", (f'%{q}%',))
     videos = c.fetchall()
     conn.close()
-    return render_template('search.html', q=q, users=users, videos=videos)
+    return render_template('search.html', q=q, users=users, videos=videos, tab='search')
 
 @app.route('/dm_inbox')
 @login_required
