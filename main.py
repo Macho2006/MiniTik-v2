@@ -121,6 +121,23 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS pages(id SERIAL PRIMARY KEY, owner TEXT, page_name TEXT, followers INTEGER DEFAULT 0)''')
     c.execute('''CREATE TABLE IF NOT EXISTS support_tickets(id SERIAL PRIMARY KEY, username TEXT, issue TEXT, timestamp REAL, status TEXT DEFAULT 'Open')''')
     c.execute('''CREATE TABLE IF NOT EXISTS friends(user1 TEXT, user2 TEXT, PRIMARY KEY(user1, user2))''')
+    c.execute('''CREATE TABLE IF NOT EXISTS creator_earnings(
+    id SERIAL PRIMARY KEY,
+    username TEXT,
+    video_id INTEGER,
+    views INTEGER DEFAULT 0,
+    rpm REAL DEFAULT 0.02,
+    earnings REAL DEFAULT 0,
+    month TEXT,
+    timestamp REAL
+)''')
+
+c.execute('''CREATE TABLE IF NOT EXISTS video_views(
+    id SERIAL PRIMARY KEY,
+    video_id INTEGER,
+    viewer_ip TEXT,
+    timestamp REAL
+)''')
     conn.commit()
     conn.close()
 
@@ -813,6 +830,58 @@ def api_feed():
     conn.close()
     return jsonify(videos)
 # ===== END REAL TIME FEED API =====
+
+@app.route('/video/<int:video_id>')
+def single_video(video_id):
+    viewer_ip = request.remote_addr
+    today = time.time() - (24 * 60 * 60)
+
+    conn = get_db(); c = conn.cursor()
+
+    # 1. CHECK IF THIS IP ALREADY VIEWED TODAY
+    c.execute("SELECT 1 FROM video_views WHERE video_id=%s AND viewer_ip=%s AND timestamp > %s", (video_id, viewer_ip, today))
+    if not c.fetchone():
+        # NEW VIEW - ADD IT
+        c.execute("INSERT INTO video_views (video_id, viewer_ip, timestamp) VALUES (%s,%s,%s)", (video_id, viewer_ip, time.time()))
+
+        # UPDATE CREATOR EARNINGS
+        c.execute("SELECT username FROM videos WHERE id=%s", (video_id,))
+        owner = c.fetchone()
+        if owner:
+            month = datetime.now().strftime('%Y-%m')
+            c.execute("INSERT INTO creator_earnings (username, video_id, views, month, timestamp) VALUES (%s,%s,1,%s,%s) ON CONFLICT DO NOTHING", (owner['username'], video_id, month, time.time()))
+            c.execute("UPDATE creator_earnings SET views = views + 1, earnings = views * rpm WHERE video_id=%s AND month=%s", (video_id, month))
+
+    # 2. GET VIDEO DATA
+    c.execute("""
+        SELECT v.*, u.profile_pic, u.verified,
+        (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
+        FROM videos v JOIN users u ON v.username=u.username WHERE v.id=%s
+    """, (video_id,))
+    video = c.fetchone()
+    conn.commit(); conn.close()
+    return render_template('index.html', videos=[video])
+
+@app.route('/monetization')
+@login_required
+def monetization():
+    conn = get_db(); c = conn.cursor()
+    month = datetime.now().strftime('%Y-%m')
+
+    # Get total stats for this month
+    c.execute("SELECT SUM(views) as views, SUM(earnings) as earnings FROM creator_earnings WHERE username=%s AND month=%s", (current_user.username, month))
+    stats = c.fetchone()
+
+    # Get breakdown per video
+    c.execute("SELECT v.caption, ce.views, ce.earnings FROM creator_earnings ce JOIN videos v ON ce.video_id=v.id WHERE ce.username=%s AND ce.month=%s ORDER BY ce.earnings DESC", (current_user.username, month))
+    breakdown = c.fetchall()
+
+    conn.close()
+
+    total_views = stats['views'] if stats['views'] else 0
+    total_earnings = round(stats['earnings'] if stats['earnings'] else 0, 2)
+
+    return render_template('monetization.html', total_views=total_views, total_earnings=total_earnings, breakdown=breakdown, rpm=0.02)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
