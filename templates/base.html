@@ -76,7 +76,7 @@
         <a href="/search" class="search-icon">🔍</a>
     </div>
 
-    <!-- TOP NAV FOR DESKTOP -->
+    <!-- TOP NAV FOR DESKTOP - UPDATED WITH MONETIZATION LINKS -->
     <nav>
         <a href="/">Home</a>
         <a href="/upload">Upload</a>
@@ -86,6 +86,11 @@
         <a href="/search">Search</a>
         <a href="/inbox">Inbox</a>
         <a href="/profile/{{ current_user.username }}">Profile</a>
+        <!-- NEW MONETIZATION LINKS -->
+        <a href="/coins">🪙 Buy Coins</a>
+        <a href="/withdraw">💰 Withdraw</a>
+        <a href="/monetization">📊 Earnings</a>
+        <!-- END NEW -->
         {% if current_user.is_admin %}<a href="/admin" style="color:#ff0050">Admin</a>{% endif %}
         <a href="/logout">Logout</a>
     </nav>
@@ -104,10 +109,10 @@
     </div>
     </div>
 
-    <!-- BOTTOM NAV FOR MOBILE - FIXED -->
+    <!-- BOTTOM NAV FOR MOBILE - UPDATED WITH MONETIZATION -->
     <div class="bottom-nav">
       <a href="/" class="{{ 'active' if tab=='foryou' or tab=='following' else '' }}"><span class="nav-icon">🏠</span>Home</a>
-      <a href="/search" class="{{ 'active' if tab=='search' else '' }}"><span class="nav-icon">🔍</span>Discover</a>
+      <a href="/coins" class="{{ 'active' if tab=='coins' else '' }}"><span class="nav-icon">🪙</span>Coins</a>
       <a href="/upload"><div class="plus-btn">+</div></a>
       <a href="/inbox" class="{{ 'active' if tab=='inbox' or tab=='notif' else '' }}">
         <span class="nav-icon">📥</span>Inbox
