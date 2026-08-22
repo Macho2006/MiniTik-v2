@@ -332,6 +332,7 @@ def my_profile_redirect_slash():
 @app.route('/profile/<username>')
 @login_required
 def profile(username):
+    username = username.strip().replace('%2C', '').replace(',', '').strip()
     conn = get_db(); c = conn.cursor()
     
     # Get user
