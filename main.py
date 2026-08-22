@@ -121,26 +121,30 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS pages(id SERIAL PRIMARY KEY, owner TEXT, page_name TEXT, followers INTEGER DEFAULT 0)''')
     c.execute('''CREATE TABLE IF NOT EXISTS support_tickets(id SERIAL PRIMARY KEY, username TEXT, issue TEXT, timestamp REAL, status TEXT DEFAULT 'Open')''')
     c.execute('''CREATE TABLE IF NOT EXISTS friends(user1 TEXT, user2 TEXT, PRIMARY KEY(user1, user2))''')
-    c.execute('''CREATE TABLE IF NOT EXISTS creator_earnings(
-    id SERIAL PRIMARY KEY,
-    username TEXT,
-    video_id INTEGER,
-    views INTEGER DEFAULT 0,
-    rpm REAL DEFAULT 0.02,
-    earnings REAL DEFAULT 0,
-    month TEXT,
-    timestamp REAL
-)''')
 
-c.execute('''CREATE TABLE IF NOT EXISTS video_views(
-    id SERIAL PRIMARY KEY,
-    video_id INTEGER,
-    viewer_ip TEXT,
-    timestamp REAL
-)''')
+    # ===== NEW: CREATOR FUND TABLES =====
+    c.execute('''CREATE TABLE IF NOT EXISTS creator_earnings(
+        id SERIAL PRIMARY KEY,
+        username TEXT,
+        video_id INTEGER,
+        views INTEGER DEFAULT 0,
+        rpm REAL DEFAULT 0.02,
+        earnings REAL DEFAULT 0,
+        month TEXT,
+        timestamp REAL,
+        UNIQUE(username, video_id, month)
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS video_views(
+        id SERIAL PRIMARY KEY,
+        video_id INTEGER,
+        viewer_ip TEXT,
+        timestamp REAL
+    )''')
+    # ===== END NEW =====
+
     conn.commit()
     conn.close()
-
 def make_admin():
     conn = get_db(); c = conn.cursor()
     c.execute("SELECT 1 FROM users WHERE username=%s", (ADMIN_USERNAME,))
@@ -564,18 +568,7 @@ def comments_page(video_id):
     return render_template('comments.html', comments=comments, video=video)
 # ===== END NEW =====
 
-# ===== NEW: SINGLE VIDEO VIEW FOR SHARE =====
-@app.route('/video/<int:video_id>')
-def single_video(video_id):
-    conn = get_db(); c = conn.cursor()
-    c.execute("""
-        SELECT v.*, u.profile_pic, u.verified,
-        (SELECT COUNT(*) FROM comments WHERE video_id=v.id) as comment_count
-        FROM videos v JOIN users u ON v.username=u.username WHERE v.id=%s
-    """, (video_id,))
-    video = c.fetchone()
-    conn.close()
-    return render_template('index.html', videos=[video])
+
 # ===== END NEW =====
 
 @app.route('/search')
