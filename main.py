@@ -906,19 +906,6 @@ def monetization():
 
     return render_template('monetization.html', total_views=total_views, total_earnings=total_earnings, breakdown=breakdown, rpm=0.02)
 
-@app.route('/buy_coins', methods=['POST'])
-@login_required
-def buy_coins():
-    coins = int(request.form['coins'])
-    # DEMO MODE: Just add coins directly, no payment
-    conn = get_db(); c = conn.cursor()
-    c.execute("INSERT INTO coins (username, balance) VALUES (%s,%s) ON CONFLICT (username) DO UPDATE SET balance = coins.balance + %s", 
-              (current_user.username, coins, coins))
-    c.execute("INSERT INTO transactions (username, type, amount, currency, gateway, status, timestamp) VALUES (%s,'buy_coins',%s,'NGN','demo','success',%s)",
-              (current_user.username, coins, time.time()))
-    conn.commit(); conn.close()
-    flash(f'{coins} coins added! DEMO MODE')
-    return redirect('/coins')
 
 # ===== COINS + WITHDRAW - DEMO MODE =====
 @app.route('/coins')
