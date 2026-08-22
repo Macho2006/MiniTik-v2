@@ -315,7 +315,7 @@ def trending():
     conn.close()
     return render_template('index.html', videos=videos, current_user=current_user.username if current_user.is_authenticated else '', following=following, liked_video_ids=liked_video_ids, tab='trending')
 
-# ===== PROFILE ROUTES - FIXED DUPLICATE =====
+# ===== PROFILE ROUTES - FIXED FOR DASHBOARD =====
 # FIX 1: /profile redirects to logged in user's profile
 @app.route('/profile')
 @login_required
@@ -328,11 +328,12 @@ def my_profile_redirect():
 def my_profile_redirect_slash():
     return redirect(url_for('profile', username=current_user.username))
 
-# THIS IS THE ONLY /profile/<username> ROUTE NOW
+# THIS IS THE ONLY /profile/<username> ROUTE NOW - PUBLIC
 @app.route('/profile/<username>')
-@login_required
-def profile(username):
-    username = username.strip().replace('%2C', '').replace(',', '').strip()
+def profile(username): # REMOVED @login_required SO OTHERS CAN VIEW
+    # CLEAN URL: remove %20 %2C commas and spaces
+    username = username.replace('%20', ' ').replace('%2C', '').replace(',', '').strip()
+    
     conn = get_db(); c = conn.cursor()
     
     # Get user
@@ -346,25 +347,34 @@ def profile(username):
     c.execute("SELECT * FROM videos WHERE username=%s ORDER BY id DESC", (username,))
     videos = c.fetchall()
     
-    # NEW 1: Calculate total likes from all videos
-    total_likes = sum([v['likes'] for v in videos])
+    # Calculate total likes from all videos
+    total_likes = sum([v['likes'] for v in videos]) if videos else 0
     user['total_likes'] = total_likes
     
-    # NEW 2: Get following count
+    # Get following count
     c.execute("SELECT COUNT(*) as count FROM following WHERE follower=%s", (username,))
     following_count = c.fetchone()['count']
     
-    # NEW 3: Get followers count - real count from DB
+    # Get followers count - real count from DB
     c.execute("SELECT COUNT(*) as count FROM following WHERE following=%s", (username,))
     followers_count = c.fetchone()['count']
     user['followers'] = followers_count
     
-    # Check if current user is following this profile
-    c.execute("SELECT 1 FROM following WHERE follower=%s AND following=%s", (current_user.username, username))
-    is_following = c.fetchone()
+    # Check if current user is logged in and following this profile
+    current_username = current_user.username if current_user.is_authenticated else None
+    is_following = False
+    if current_username:
+        c.execute("SELECT 1 FROM following WHERE follower=%s AND following=%s", (current_username, username))
+        is_following = c.fetchone() is not None
     
     conn.close()
-    return render_template('profile.html', user=user, videos=videos, is_following=is_following, following_count=following_count, currennt_user=current_user.username)
+    return render_template('profile.html', 
+        user=user, 
+        videos=videos, 
+        is_following=is_following, 
+        following_count=following_count, 
+        current_user=current_username # FIXED TYPO: was currennt_user
+    )
 # ===== END PROFILE ROUTES =====
 
 @app.route('/follow/<username>')
