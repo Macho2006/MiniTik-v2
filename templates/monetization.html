@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Monetization | MiniTik{% endblock %}
+{% block content %}
+<div style="padding:20px;max-width:600px;margin:auto">
+    <h2 style="text-align:center">💰 Creator Fund</h2>
+    <p style="text-align:center;color:#888">Earn $0.02 per 1000 qualified views</p>
+
+    <div style="background:#111;padding:20px;border-radius:12px;margin:20px 0">
+        <div style="display:flex;justify-content:space-between;margin-bottom:15px">
+            <div><b style="font-size:24px">{{ total_views }}</b><br><span style="color:#888">Total Views</span></div>
+            <div><b style="font-size:24px">${{ total_earnings }}</b><br><span style="color:#888">This Month</span></div>
+        </div>
+        <a href="/withdraw" style="background:#fe2c55;padding:12px;display:block;text-align:center;border-radius:8px;text-decoration:none;color:#fff">Withdraw</a>
+    </div>
+
+    <h3>Video Breakdown</h3>
+    {% for v in breakdown %}
+    <div style="background:#111;padding:10px;border-radius:8px;margin:10px 0;display:flex;justify-content:space-between">
+        <div>{{ v.caption[:30] }}...</div>
+        <div>{{ v.views }} views / ${{ "%.2f"|format(v.earnings) }}</div>
+    </div>
+    {% else %}
+    <p style="text-align:center;color:#888">No earnings yet. Post videos!</p>
+    {% endfor %}
+</div>
+{% endblock %}
