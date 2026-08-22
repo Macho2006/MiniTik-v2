@@ -363,7 +363,7 @@ def profile(username):
     is_following = c.fetchone()
     
     conn.close()
-    return render_template('profile.html', user=user, videos=videos, is_following=is_following, following_count=following_count)
+    return render_template('profile.html', user=user, videos=videos, is_following=is_following, following_count=following_count, currennt_user=current_user.username if currrent_user.is_authenticated else None)
 # ===== END PROFILE ROUTES =====
 
 @app.route('/follow/<username>')
