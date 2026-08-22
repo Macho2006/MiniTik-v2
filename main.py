@@ -332,7 +332,7 @@ def my_profile_redirect_slash():
 @app.route('/profile/<username>')
 @login_required
 def profile(username):
-    conn = get_db(); c = conn.cursor(dictionary=True)
+    conn = get_db(); c = conn.cursor()
     
     # Get user
     c.execute("SELECT * FROM users WHERE username=%s", (username,))
