@@ -142,6 +142,36 @@ def init_db():
         timestamp REAL
     )''')
     # ===== END NEW =====
+        # ===== MONETIZATION TABLES =====
+    c.execute('''CREATE TABLE IF NOT EXISTS coins(
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE,
+        balance INTEGER DEFAULT 0
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS transactions(
+        id SERIAL PRIMARY KEY,
+        username TEXT,
+        type TEXT, -- 'buy_coins', 'gift_sent', 'withdraw'
+        amount REAL,
+        currency TEXT, -- 'NGN', 'USD', 'USDT'
+        gateway TEXT, -- 'demo', 'paystack', 'stripe'
+        reference TEXT,
+        status TEXT DEFAULT 'pending',
+        timestamp REAL
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS withdrawals(
+        id SERIAL PRIMARY KEY,
+        username TEXT,
+        amount_usd REAL,
+        method TEXT, -- 'bank', 'usdt'
+        bank_details TEXT,
+        usdt_wallet TEXT,
+        status TEXT DEFAULT 'pending',
+        timestamp REAL
+    )''')
+    # ===== END MONETIZATION =====
 
     conn.commit()
     conn.close()
@@ -875,6 +905,74 @@ def monetization():
     total_earnings = round(stats['earnings'] if stats['earnings'] else 0, 2)
 
     return render_template('monetization.html', total_views=total_views, total_earnings=total_earnings, breakdown=breakdown, rpm=0.02)
+
+@app.route('/buy_coins', methods=['POST'])
+@login_required
+def buy_coins():
+    coins = int(request.form['coins'])
+    # DEMO MODE: Just add coins directly, no payment
+    conn = get_db(); c = conn.cursor()
+    c.execute("INSERT INTO coins (username, balance) VALUES (%s,%s) ON CONFLICT (username) DO UPDATE SET balance = coins.balance + %s", 
+              (current_user.username, coins, coins))
+    c.execute("INSERT INTO transactions (username, type, amount, currency, gateway, status, timestamp) VALUES (%s,'buy_coins',%s,'NGN','demo','success',%s)",
+              (current_user.username, coins, time.time()))
+    conn.commit(); conn.close()
+    flash(f'{coins} coins added! DEMO MODE')
+    return redirect('/coins')
+
+# ===== COINS + WITHDRAW - DEMO MODE =====
+@app.route('/coins')
+@login_required
+def coins():
+    conn = get_db(); c = conn.cursor()
+    c.execute("SELECT balance FROM coins WHERE username=%s", (current_user.username,))
+    coins = c.fetchone()
+    balance = coins['balance'] if coins else 0
+    conn.close()
+    return render_template('coins.html', balance=balance)
+
+@app.route('/buy_coins', methods=['POST'])
+@login_required
+def buy_coins():
+    coins = int(request.form['coins'])
+    
+    # DEMO MODE: Just add coins directly
+    conn = get_db(); c = conn.cursor()
+    c.execute("INSERT INTO coins (username, balance) VALUES (%s,%s) ON CONFLICT (username) DO UPDATE SET balance = coins.balance + %s", 
+              (current_user.username, coins, coins))
+    c.execute("INSERT INTO transactions (username, type, amount, currency, gateway, status, timestamp) VALUES (%s,'buy_coins',%s,'NGN','demo','success',%s)",
+              (current_user.username, coins, time.time()))
+    conn.commit(); conn.close()
+    flash(f'{coins} coins added! DEMO MODE - No real payment yet', 'success')
+    return redirect('/coins')
+
+@app.route('/withdraw', methods=['GET', 'POST'])
+@login_required
+def withdraw():
+    if request.method == 'POST':
+        amount = float(request.form['amount'])
+        method = request.form['method']
+        
+        if amount < 10:
+            flash('Minimum withdrawal is $10')
+            return redirect('/withdraw')
+            
+        conn = get_db(); c = conn.cursor()
+        c.execute("INSERT INTO withdrawals (username, amount_usd, method, bank_details, usdt_wallet, timestamp) VALUES (%s,%s,%s,%s,%s,%s)",
+                  (current_user.username, amount, method, request.form.get('bank'), request.form.get('usdt'), time.time()))
+        conn.commit(); conn.close()
+        flash('Withdrawal request submitted! We will pay manually for now', 'success')
+        return redirect('/withdraw')
+    
+    # Get total earnings for display
+    conn = get_db(); c = conn.cursor()
+    month = datetime.now().strftime('%Y-%m')
+    c.execute("SELECT SUM(earnings) as earnings FROM creator_earnings WHERE username=%s AND month=%s", (current_user.username, month))
+    stats = c.fetchone()
+    total_earnings = round(stats['earnings'] if stats['earnings'] else 0, 2)
+    conn.close()
+    return render_template('withdraw.html', total_earnings=total_earnings)
+# ===== END MONETIZATION ROUTES =====
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
