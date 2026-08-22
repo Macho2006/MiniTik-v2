@@ -47,60 +47,35 @@
         <div class="stat"><b>{{ user.total_likes }}</b>Likes</div>
     </div>
 
-    <!-- UPDATED BUTTONS: FOLLOW + MESSAGE -->
+    <!-- BUTTONS SECTION - FIXED: ONLY 1 BLOCK NOW -->
+    <div style="margin:15px 0">
     {% if current_user == user.username %}
-    <a href="/settings" style="background:#222;padding:6px 20px;border-radius:8px;color:#fff;text-decoration:none;font-size:14px">Edit Profile</a>
-    <!-- BUTTONS SECTION -->
-<div style="margin:15px 0">
-{% if current_user == user.username %}
-    <!-- THIS IS YOUR OWN PROFILE -->
-    <a href="/settings" class="tool-btn" style="background:#222;padding:8px 20px;border-radius:8px;display:inline-block">Edit Profile</a>
-    
-    <!-- CREATOR TOOLS -->
-    <div style="background:#111;border-radius:12px;padding:15px;margin-top:20px">
-        <h3 style="text-align:center;margin:0 0 15px 0;font-size:16px">Creator Tools</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-            <a href="/story" class="tool-btn" style="background:#1a1a1a;padding:10px;border-radius:8px;font-size:12px">📷 Add Story</a>
-            <a href="/upload" class="tool-btn" style="background:#1a1a1a;padding:10px;border-radius:8px;font-size:12px">⬆️ Upload</a>
-            <a href="/monetization" class="tool-btn" style="background:#1a1a1a;padding:10px;border-radius:8px;font-size:12px">💰 Monetization</a>
-            <a href="/pro" class="tool-btn" style="background:#1a1a1a;padding:10px;border-radius:8px;font-size:12px">📊 Pro Mode</a>
-            <a href="/support" class="tool-btn" style="background:#1a1a1a;padding:10px;border-radius:8px;font-size:12px">🆘 Customer Care</a>
-            <a href="/live" class="tool-btn" style="background:#1a1a1a;padding:10px;border-radius:8px;font-size:12px">🔴 Go Live</a>
-        </div>
-    </div>
-{% else %}
-    <!-- THIS IS SOMEONE ELSE'S PROFILE -->
-    <div class="btn-row" style="display:flex;gap:10px;justify-content:center">
-        <a href="/follow/{{ user.username }}" class="tool-btn pink" style="background:#ff0050;padding:8px 20px;border-radius:8px">{% if is_following %}Unfollow{% else %}Follow{% endif %}</a>
-        <a href="/dm/{{ user.username }}" class="tool-btn" style="background:#222;padding:8px 20px;border-radius:8px">Message</a>
-    </div>
-{% endif %}
-</div>
-    {% else %}
-    <div class="btn-row">
-        <a href="/follow/{{ user.username }}" class="tool-btn pink">{% if is_following %}Unfollow{% else %}Follow{% endif %}</a>
+        <!-- THIS IS YOUR OWN PROFILE -->
+        <a href="/settings" class="tool-btn" style="background:#222;padding:8px 20px;border-radius:8px;display:inline-block;margin-bottom:15px">Edit Profile</a>
         
-        <!-- NEW MESSAGE BUTTON -->
-        <a href="/dm/{{ user.username }}" class="tool-btn">Message</a>
-    </div>
+        <!-- CREATOR TOOLS -->
+        <div class="creator-tools">
+            <h3>Creator Tools</h3>
+            <div class="tools-grid">
+                <a href="/story/upload" class="tool-btn">📹 Add Story</a>
+                <a href="/upload" class="tool-btn">⬆️ Upload</a>
+                <button class="tool-btn" onclick="alert('Coming Soon')">💰 Monetization</button>
+                <button class="tool-btn" onclick="alert('Coming Soon')">📊 Pro Mode</button>
+                <a href="/support" class="tool-btn">🛟 Customer Care</a>
+                <button class="tool-btn" onclick="alert('Coming Soon')">🔴 Go Live</button>
+            </div>
+        </div>
+    {% else %}
+        <!-- THIS IS SOMEONE ELSE'S PROFILE -->
+        <div class="btn-row">
+            <a href="/follow/{{ user.username }}" class="tool-btn pink">{% if is_following %}Unfollow{% else %}Follow{% endif %}</a>
+            <a href="/dm/{{ user.username }}" class="tool-btn">Message</a>
+        </div>
     {% endif %}
+    </div>
 
     <div style="margin-top:10px">{{ user.bio or 'No bio yet' }}</div>
 </div>
-
-{% if current_user == user.username %}
-<div class="creator-tools">
-    <h3>Creator Tools</h3>
-    <div class="tools-grid">
-        <a href="/story/upload" class="tool-btn">📹 Add Story</a>
-        <a href="/upload" class="tool-btn">⬆️ Upload</a>
-        <button class="tool-btn" onclick="alert('Coming Soon')">💰 Monetization</button>
-        <button class="tool-btn" onclick="alert('Coming Soon')">📊 Pro Mode</button>
-        <a href="/support" class="tool-btn">🛟 Customer Care</a>
-        <button class="tool-btn" onclick="alert('Coming Soon')">🔴 Go Live</button>
-    </div>
-</div>
-{% endif %}
 
 <div class="profile-tabs">
     <div class="tab active" onclick="showTab('posts')">Posts</div>
