@@ -9,6 +9,19 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 import cloudinary, cloudinary.uploader
 from datetime import datetime, timedelta # FIXED: added timedelta
 from werkzeug.middleware.proxy_fix import ProxyFix
+from functools import wraps
+from flask import abort, flash, redirect, url_for
+
+def verified_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login'))
+        if not current_user.is_verified:  # if your column is "verified" change to current_user.verified
+            flash('You must be verified to access monetization features', 'error')
+            return redirect(url_for('profile', username=current_user.username))
+        return f(*args, **kwargs)
+    return decorated_function
 
 app = Flask(__name__)
 app.config['SESSION_PERMANENT'] = True
@@ -886,7 +899,7 @@ def single_video(video_id):
     return render_template('index.html', videos=[video])
 
 @app.route('/monetization')
-@login_required
+@verified_required
 def monetization():
     conn = get_db(); c = conn.cursor()
     
@@ -935,7 +948,7 @@ def buy_coins():
     return redirect('/coins')
 
 @app.route('/withdraw', methods=['GET', 'POST'])
-@login_required
+@verified_required
 def withdraw():
     if request.method == 'POST':
         amount = float(request.form['amount'])
