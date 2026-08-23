@@ -889,23 +889,24 @@ def single_video(video_id):
 @login_required
 def monetization():
     conn = get_db(); c = conn.cursor()
+    
+    # 1. Get this month earnings
     month = datetime.now().strftime('%Y-%m')
-
-    # Get total stats for this month
-    c.execute("SELECT SUM(views) as views, SUM(earnings) as earnings FROM creator_earnings WHERE username=%s AND month=%s", (current_user.username, month))
+    c.execute("SELECT SUM(earnings) as earnings FROM creator_earnings WHERE username=%s AND month=%s", (current_user.username, month))
     stats = c.fetchone()
-
-    # Get breakdown per video
-    c.execute("SELECT v.caption, ce.views, ce.earnings FROM creator_earnings ce JOIN videos v ON ce.video_id=v.id WHERE ce.username=%s AND ce.month=%s ORDER BY ce.earnings DESC", (current_user.username, month))
-    breakdown = c.fetchall()
-
-    conn.close()
-
-    total_views = stats['views'] if stats['views'] else 0
     total_earnings = round(stats['earnings'] if stats['earnings'] else 0, 2)
 
-    return render_template('monetization.html', total_views=total_views, total_earnings=total_earnings, breakdown=breakdown, rpm=0.02)
+    # 2. Get coin balance
+    c.execute("SELECT balance FROM coins WHERE username=%s", (current_user.username,))
+    coins = c.fetchone()
+    balance = coins['balance'] if coins else 0
 
+    # 3. Get pending withdrawals
+    c.execute("SELECT * FROM withdrawals WHERE username=%s ORDER BY timestamp DESC LIMIT 5", (current_user.username,))
+    withdrawals = c.fetchall()
+    
+    conn.close()
+    return render_template('monetization.html', total_earnings=total_earnings, balance=balance, withdrawals=withdrawals)
 
 # ===== COINS + WITHDRAW - DEMO MODE =====
 @app.route('/coins')
