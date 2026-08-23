@@ -953,9 +953,15 @@ def withdraw():
     if request.method == 'POST':
         amount = float(request.form['amount'])
         method = request.form['method']
-        
+
+        # ADDED: CHECK IF USER HAS ENOUGH COINS
+        user_coins = current_user.coin_balance # change this to your column name
+        if amount * 100 > user_coins: # assuming 100 coins = $1
+            flash(f'Insufficient coins. You have {user_coins} coins', 'error')
+            return redirect('/withdraw')
+
         if amount < 10:
-            flash('Minimum withdrawal is $10')
+            flash('Minimum withdrawal is $10', 'error')
             return redirect('/withdraw')
             
         conn = get_db(); c = conn.cursor()
