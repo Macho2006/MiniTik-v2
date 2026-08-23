@@ -4,7 +4,7 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 20px;
-    padding-bottom: 80px; /* ADDED: space for bottom nav so video isn't covered */
+    padding-bottom: 80px; /* ADDED: space so bottom nav doesn't cover content */
 }
 
 h1 {
@@ -42,7 +42,7 @@ h1 {
     margin: 20px auto;
     max-width: 500px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    position: relative; /* ADDED: for proper video container */
+    position: relative; /* ADDED: for overlay elements */
     overflow: hidden; /* ADDED: prevent overflow */
 }
 
@@ -69,7 +69,7 @@ h1 {
     font-size: 15px;
 }
 
-/* FIXED: Video container to show full video */
+/* ADDED: Container to force full video to show */
 .video-container {
     width: 100%;
     background: #000;
@@ -79,19 +79,19 @@ h1 {
 
 video {
     width: 100%;
-    height: auto; /* CHANGED: was missing, now auto to maintain aspect ratio */
-    max-height: 70vh; /* ADDED: prevents video from being taller than screen */
+    height: auto; /* ADDED: keep aspect ratio */
     border-radius: 8px;
-    object-fit: contain; /* ADDED: shows entire video instead of cropping */
-    background: #000; /* ADDED: black bars instead of cutting video */
+    object-fit: contain; /* ADDED: shows entire video, no crop */
+    background: #000; /* ADDED: black bars instead of cutting */
     display: block;
 }
 
-/* ADDED: Mobile fix for full screen feed */
+/* ADDED: Mobile TikTok style fix */
 @media (max-width: 600px) {
     body {
         padding: 0;
         padding-bottom: 56px; /* space for bottom nav */
+        background: #000;
     }
     
     .video-card {
@@ -100,20 +100,26 @@ video {
         max-width: 100%;
         padding: 0;
         background: #000;
+        box-shadow: none;
     }
     
     .video-container {
-        height: calc(100vh - 56px - 50px); /* screen height minus bottom nav minus top tabs */
+        height: calc(100vh - 56px - 50px); /* screen - bottom nav - top tabs */
         border-radius: 0;
     }
     
     video {
         height: 100%;
-        max-height: none;
         border-radius: 0;
     }
     
-    .user-info, .caption {
+    .user-info {
         padding: 0 15px;
+        margin-top: 10px;
+    }
+    
+    .caption {
+        padding: 0 15px;
+        margin-bottom: 10px;
     }
 }
