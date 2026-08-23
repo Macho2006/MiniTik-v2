@@ -57,10 +57,18 @@ header, nav, .navbar, .top-nav, .header { display: none !important; }
     align-items:center; 
     justify-content:center 
 }
+
+/* FIXED: Container so video doesn't get cropped */
+.video-container {
+    width: 100vw;
+    height: 100vh;
+}
+
 .video-item .main-media { 
-    width: 100vw; 
-    height: 100vh; 
-    object-fit: cover; 
+    width: 100%; 
+    height: 100%; 
+    object-fit: contain; /* CHANGED: was cover. Now shows full video */
+    background: #000; /* ADDED: black bars instead of crop */
 }
 
 /* === SIDE ACTIONS === */
@@ -126,6 +134,13 @@ header, nav, .navbar, .top-nav, .header { display: none !important; }
 
 body { padding-bottom: 0 !important; margin:0; background:#000 }
 
+/* FIXED: Account for bottom nav so video isn't covered */
+@media (max-width: 600px) {
+    .video-container {
+        height: calc(100vh - 56px); /* minus bottom nav */
+    }
+}
+
 /* === TIKTOK BOTTOM NAV === */
 .tiktok-bottom-nav {
     position: fixed; 
@@ -177,11 +192,14 @@ body { padding-bottom: 0 !important; margin:0; background:#000 }
 {% if videos %}
     {% for video in videos %}
     <div class="video-item" data-id="{{video['id']}}">
-        {% if video['type'] == 'image' %}
-            <img src="{{ video['video'] }}" class="main-media">
-        {% else %}
-            <video src="{{ video['video'] }}" autoplay loop muted playsinline class="main-media" preload="metadata"></video>
-        {% endif %}
+        <!-- ADDED WRAPPER: This is the fix -->
+        <div class="video-container">
+            {% if video['type'] == 'image' %}
+                <img src="{{ video['video'] }}" class="main-media">
+            {% else %}
+                <video src="{{ video['video'] }}" autoplay loop muted playsinline class="main-media" preload="metadata"></video>
+            {% endif %}
+        </div>
 
         <div class="side-actions">
             <div class="action-btn">
