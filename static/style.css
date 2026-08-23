@@ -4,6 +4,7 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 20px;
+    padding-bottom: 80px; /* ADDED: space for bottom nav so video isn't covered */
 }
 
 h1 {
@@ -41,6 +42,8 @@ h1 {
     margin: 20px auto;
     max-width: 500px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    position: relative; /* ADDED: for proper video container */
+    overflow: hidden; /* ADDED: prevent overflow */
 }
 
 .user-info {
@@ -66,7 +69,51 @@ h1 {
     font-size: 15px;
 }
 
+/* FIXED: Video container to show full video */
+.video-container {
+    width: 100%;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
 video {
     width: 100%;
+    height: auto; /* CHANGED: was missing, now auto to maintain aspect ratio */
+    max-height: 70vh; /* ADDED: prevents video from being taller than screen */
     border-radius: 8px;
+    object-fit: contain; /* ADDED: shows entire video instead of cropping */
+    background: #000; /* ADDED: black bars instead of cutting video */
+    display: block;
+}
+
+/* ADDED: Mobile fix for full screen feed */
+@media (max-width: 600px) {
+    body {
+        padding: 0;
+        padding-bottom: 56px; /* space for bottom nav */
+    }
+    
+    .video-card {
+        margin: 0;
+        border-radius: 0;
+        max-width: 100%;
+        padding: 0;
+        background: #000;
+    }
+    
+    .video-container {
+        height: calc(100vh - 56px - 50px); /* screen height minus bottom nav minus top tabs */
+        border-radius: 0;
+    }
+    
+    video {
+        height: 100%;
+        max-height: none;
+        border-radius: 0;
+    }
+    
+    .user-info, .caption {
+        padding: 0 15px;
+    }
 }
