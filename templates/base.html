@@ -52,11 +52,19 @@
         /* FIXED: Added padding so content shows */
         .content { padding-top: 60px; padding-bottom: 70px; min-height: 100vh; }
 
+        /* NEW: KILL GHOST TEXT FOR GOOD */
+        .welcome-banner, .welcome-text, .welcome, .header-text, .page-header { 
+            display: none !important; 
+            height: 0 !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+        }
+
         @media (min-width: 769px) { 
           .top-nav, .bottom-nav { display: none; } 
           nav { display:block !important }
           .container { max-width:700px; padding: 20px; }
-          .content { padding-top: 20px; padding-bottom: 20px; } /* FIXED FOR DESKTOP TOO */
+          .content { padding-top: 20px; padding-bottom: 20px; }
         }
         @media (max-width: 768px) { 
           nav { display: none !important; } 
