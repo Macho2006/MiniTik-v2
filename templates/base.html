@@ -74,63 +74,46 @@
         <a href="/search" class="search-icon">🔍</a>
     </div>
 
-    <!-- TOP NAV FOR DESKTOP - UPDATED -->
-    <nav>
-        <a href="/">Home</a>
-        <a href="/upload">Upload</a>
-        <a href="/trending">Trending</a>
-        <a href="/following_list">Following</a>
-        <a href="/friends">Discover</a>
-        <a href="/search">Search</a>
-        <a href="/inbox">Inbox</a>
-        <a href="/profile/{{ current_user.username }}">Profile</a>
-        
-        <!-- CHANGED: MONETIZATION LINKS FOR VERIFIED ONLY -->
-        {% if current_user.is_authenticated and current_user.is_verified %}
-        <a href="/coins">🪙 Buy Coins</a>
-        <a href="/withdraw">💰 Withdraw</a>
-        <a href="/monetization">📊 Earnings</a>
-        {% endif %}
-        <!-- END MONETIZATION -->
-
-        {% if current_user.is_admin %}<a href="/admin" style="color:#ff0050">Admin</a>{% endif %}
-        <a href="/logout">Logout</a>
-    </nav>
+    <!-- TOP NAV FOR DESKTOP -->
+<nav>
+    <a href="/">Home</a>
+    <a href="/upload">Upload</a>
+    <a href="/trending">Trending</a>
+    <a href="/following_list">Following</a>
+    <a href="/friends">Discover</a>
+    <a href="/search">Search</a>
+    <a href="/inbox">Inbox</a>
+    <a href="/profile/{{ current_user.username }}">Profile</a>
     
-    <div class="container">
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <div class="flash">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <!-- CHANGED: BUY COINS FOR EVERYONE -->
+    <a href="/coins">🪙 Buy Coins</a>
+    
+    <!-- CHANGED: EARNINGS + WITHDRAW FOR VERIFIED ONLY -->
+    {% if current_user.is_authenticated and current_user.is_verified %}
+    <a href="/withdraw">💰 Withdraw</a>
+    <a href="/monetization">📊 Earnings</a>
+    {% endif %}
 
-    <div class="content">
-        {% block content %}{% endblock %}
-    </div>
-    </div>
+    {% if current_user.is_admin %}<a href="/admin" style="color:#ff0050">Admin</a>{% endif %}
+    <a href="/logout">Logout</a>
+</nav>
 
-    <!-- BOTTOM NAV FOR MOBILE - UPDATED -->
-    <div class="bottom-nav">
-      <a href="/" class="{{ 'active' if tab=='foryou' or tab=='following' else '' }}"><span class="nav-icon">🏠</span>Home</a>
-      
-      <!-- CHANGED: COINS BUTTON FOR VERIFIED ONLY -->
-      {% if current_user.is_authenticated and current_user.is_verified %}
-      <a href="/coins" class="{{ 'active' if tab=='coins' else '' }}"><span class="nav-icon">🪙</span>Coins</a>
-      {% else %}
-      <a href="/profile/{{current_user.username}}"><span class="nav-icon">🪙</span>Coins</a> <!-- redirects non-verified to profile -->
-      {% endif %}
+<!-- BOTTOM NAV FOR MOBILE -->
+<div class="bottom-nav">
+  <a href="/" class="{{ 'active' if tab=='foryou' or tab=='following' else '' }}"><span class="nav-icon">🏠</span>Home</a>
+  
+  <!-- CHANGED: BUY COINS FOR EVERYONE -->
+  <a href="/coins" class="{{ 'active' if tab=='coins' else '' }}"><span class="nav-icon">🪙</span>Coins</a>
 
-      <a href="/upload"><div class="plus-btn">+</div></a>
-      <a href="/inbox" class="{{ 'active' if tab=='inbox' or tab=='notif' else '' }}">
-        <span class="nav-icon">📥</span>Inbox
-        <span class="notif-badge" id="notif-badge">0</span>
-      </a>
-      <a href="{% if current_user.is_authenticated %}/profile/{{current_user.username}}{% else %}/login{% endif %}" class="{{ 'active' if tab=='profile' else '' }}">
-        <span class="nav-icon">👤</span>Me
-      </a>
-    </div>
+  <a href="/upload"><div class="plus-btn">+</div></a>
+  <a href="/inbox" class="{{ 'active' if tab=='inbox' or tab=='notif' else '' }}">
+    <span class="nav-icon">📥</span>Inbox
+    <span class="notif-badge" id="notif-badge">0</span>
+  </a>
+  <a href="{% if current_user.is_authenticated %}/profile/{{current_user.username}}{% else %}/login{% endif %}" class="{{ 'active' if tab=='profile' else '' }}">
+    <span class="nav-icon">👤</span>Me
+  </a>
+</div>
 
 <script>
 let notifInterval = null;
