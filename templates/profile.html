@@ -53,18 +53,18 @@
         <!-- THIS IS YOUR OWN PROFILE -->
         <a href="/settings" class="tool-btn" style="background:#222;padding:8px 20px;border-radius:8px;display:inline-block;margin-bottom:15px">Edit Profile</a>
         
-        <!-- CREATOR TOOLS -->
-        <div class="creator-tools">
-            <h3>Creator Tools</h3>
-            <div class="tools-grid">
-                <a href="/story/upload" class="tool-btn">📹 Add Story</a>
-                <a href="/upload" class="tool-btn">⬆️ Upload</a>
-                <button class="tool-btn" onclick="alert('Coming Soon')">💰 Monetization</button>
-                <button class="tool-btn" onclick="alert('Coming Soon')">📊 Pro Mode</button>
-                <a href="/support" class="tool-btn">🛟 Customer Care</a>
-                <button class="tool-btn" onclick="alert('Coming Soon')">🔴 Go Live</button>
-            </div>
-        </div>
+       <!-- CREATOR TOOLS -->
+<div class="creator-tools">
+    <h3>Creator Tools</h3>
+    <div class="tools-grid">
+        <a href="/story" class="tool-btn">📷 Add Story</a>
+        <a href="/upload" class="tool-btn">⬆️ Upload</a>
+        <a href="/monetization" class="tool-btn">💰 Monetization</a>  <!-- FIXED -->
+        <a href="/pro" class="tool-btn" onclick="alert('Coming Soon')">📊 Pro Mode</a>
+        <a href="/support" class="tool-btn">🆘 Customer Care</a>
+        <a href="/go_live" class="tool-btn" onclick="alert('Coming Soon')">🔴 Go Live</a>
+    </div>
+</div>
     {% else %}
         <!-- THIS IS SOMEONE ELSE'S PROFILE -->
         <div class="btn-row">
