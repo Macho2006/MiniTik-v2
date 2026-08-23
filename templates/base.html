@@ -49,13 +49,14 @@
 
         .notif-badge{position:absolute;top:2px;right:18px;background:#ff0050;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;display:none}
 
-        .content { padding-top: 0; padding-bottom: 0; }
+        /* FIXED: Added padding so content shows */
+        .content { padding-top: 60px; padding-bottom: 70px; min-height: 100vh; }
 
         @media (min-width: 769px) { 
           .top-nav, .bottom-nav { display: none; } 
           nav { display:block !important }
           .container { max-width:700px; padding: 20px; }
-          .content { padding-top: 0; }
+          .content { padding-top: 20px; padding-bottom: 20px; } /* FIXED FOR DESKTOP TOO */
         }
         @media (max-width: 768px) { 
           nav { display: none !important; } 
@@ -113,6 +114,20 @@
   <a href="{% if current_user.is_authenticated %}/profile/{{current_user.username}}{% else %}/login{% endif %}" class="{{ 'active' if tab=='profile' else '' }}">
     <span class="nav-icon">👤</span>Me
   </a>
+</div>
+
+<div class="container">
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for message in messages %}
+      <div class="flash">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<div class="content">
+    {% block content %}{% endblock %}
+</div>
 </div>
 
 <script>
