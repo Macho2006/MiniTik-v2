@@ -66,10 +66,28 @@
           .container { max-width:700px; padding: 20px; }
           .content { padding-top: 20px; padding-bottom: 20px; }
         }
+        .content { 
+    padding-top: 20px; 
+    padding-bottom: calc(20px + env(safe-area-inset-bottom) + 70px); 
+}
         @media (max-width: 768px) { 
           nav { display: none !important; } 
           .container { padding: 0; max-width: 100%; }
         }
+        /* TIKTOK STYLE VIDEO CROP */
+.video-player, video {
+    width: 100%;
+    height: 100vh; 
+    object-fit: cover; /* crop instead of stretch */
+    background: #000;
+}
+
+.post-video {
+    width: 100%;
+    aspect-ratio: 9/16; /* force vertical */
+    object-fit: cover;
+    border-radius: 8px;
+}
     </style>
 </head>
 <body>
