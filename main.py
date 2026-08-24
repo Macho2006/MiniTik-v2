@@ -17,7 +17,7 @@ def verified_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             return redirect(url_for('login'))
-        if not current_user.is_verified:  # if your column is "verified" change to current_user.verified
+        if not current_user.verified:  # if your column is "verified" change to current_user.verified
             flash('You must be verified to access monetization features', 'error')
             return redirect(url_for('profile', username=current_user.username))
         return f(*args, **kwargs)
@@ -93,16 +93,17 @@ class User(UserMixin):
         self.username = username
         self.is_admin = is_admin
         self.profile_pic = profile_pic
+        self.verified = bool(verified)
 
 @login_manager.user_loader
 def load_user(user_id):
     try:
         conn = get_db(); c = conn.cursor()
-        c.execute("SELECT id, username, is_admin, profile_pic FROM users WHERE id=%s", (user_id,))
+        c.execute("SELECT id, username, is_admin, profile_pic, verified FROM users WHERE id=%s", (user_id,))
         user = c.fetchone()
         conn.close()
         if user:
-            return User(user['id'], user['username'], user['is_admin'], user['profile_pic'])
+            return User(user['id'], user['username'], user['is_admin'], user['profile_pic'], user['verified'])
     except:
         return None
     return None
