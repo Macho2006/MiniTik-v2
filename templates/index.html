@@ -197,7 +197,7 @@ body { padding-bottom: 0 !important; margin:0; background:#000 }
             {% if video['type'] == 'image' %}
                 <img src="{{ video['video'] }}" class="main-media">
             {% else %}
-                <video src="{{ video['video'] }}" autoplay loop muted playsinline class="main-media" preload="metadata"></video>
+                <video src="{{ video['video'] }}" autoplay loop muted playsinline class="post-video" preload="metadata"></video>
             {% endif %}
         </div>
 
