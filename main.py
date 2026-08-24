@@ -80,6 +80,40 @@ if DATABASE_URL and 'sslmode' not in DATABASE_URL:
 ADMIN_USERNAME = "MachoDev"
 ALLOWED_EXT = {'mp4', 'mov', 'avi', 'jpg', 'jpeg', 'png', 'gif'}
 FILTERS = ['None', 'Grayscale', 'Sepia', 'Blur', 'Bright']
+from werkzeug.security import generate_password_hash
+
+# ===== SEED ADMIN USER - AUTO CREATE ON BOOT =====
+def create_admin_user():
+    admin_email = "macho@minitik.com"  # <-- CHANGE TO YOUR EMAIL
+    admin_password = "MachoDev@2026"   # <-- CHANGE TO STRONG PASSWORD
+    admin_username = ADMIN_USERNAME    # <-- "MachoDev" from line 80
+    
+    with app.app_context():
+        admin = User.query.filter_by(email=admin_email).first()
+        
+        if not admin:
+            print(f"Creating admin user: {admin_email}")
+            hashed_password = generate_password_hash(admin_password)
+            
+            new_admin = User(
+                id=1,  # Force ID 1 for CEO
+                username=admin_username,
+                is_admin=True,  # <-- MATCHES YOUR MODEL
+                profile_pic=None
+            )
+            new_admin.email = admin_email  # if email isn't in __init__
+            new_admin.password = hashed_password  # if password isn't in __init__
+            
+            db.session.add(new_admin)
+            db.session.commit()
+            print("Admin user created successfully!")
+        else:
+            print("Admin user already exists.")
+
+# ===== RUN THIS ON STARTUP - PUT AT THE VERY BOTTOM OF main.py =====
+with app.app_context():
+    db.create_all()
+    create_admin_user()
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXT
@@ -88,9 +122,11 @@ def clean_username(name): # NEW: stops " User" vs "User" bug
     return name.strip()
 
 class User(UserMixin):
-    def __init__(self, id, username, is_admin=False, profile_pic=None):
+    def __init__(self, id, username, email, password, is_admin=False, profile_pic=None):
         self.id = id
         self.username = username
+        self.email = email
+        self.password = password
         self.is_admin = is_admin
         self.profile_pic = profile_pic
         self.verified = bool(verified)
