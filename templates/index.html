@@ -58,20 +58,34 @@ header, nav, .navbar, .top-nav, .header { display: none !important; }
     justify-content:center 
 }
 
-/* FIXED: Container so video doesn't get cropped */
+/* FIXED: 9:16 TIKTOK CROP */
 .video-container {
     width: 100vw;
     height: 100vh;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
-.video-item .main-media { 
-    width: 100%; 
-    height: 100%; 
-    object-fit: contain; /* CHANGED: was cover. Now shows full video */
-    background: #000; /* ADDED: black bars instead of crop */
+.post-video {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 9/16;
+    object-fit: cover; /* crop instead of black bars */
+    background: #000;
 }
 
-/* === SIDE ACTIONS === */
+.post-media {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 9/16;
+    object-fit: cover; /* crop images too */
+    background: #000;
+}
+
+/* === SIDE ACTIONS - ONLY 1 INSTANCE NOW === */
 .side-actions { 
     position: absolute; 
     right: 12px;
@@ -192,15 +206,16 @@ body { padding-bottom: 0 !important; margin:0; background:#000 }
 {% if videos %}
     {% for video in videos %}
     <div class="video-item" data-id="{{video['id']}}">
-        <!-- ADDED WRAPPER: This is the fix -->
+        <!-- VIDEO/IMAGE -->
         <div class="video-container">
             {% if video['type'] == 'image' %}
-                <img src="{{ video['video'] }}" class="main-media">
+                <img src="{{ video['video'] }}" class="post-media">
             {% else %}
                 <video src="{{ video['video'] }}" autoplay loop muted playsinline class="post-video" preload="metadata"></video>
             {% endif %}
         </div>
 
+        <!-- ONLY 1 SIDE ACTIONS BLOCK NOW -->
         <div class="side-actions">
             <div class="action-btn">
                 <a href="/profile/{{ video['username'] }}">
