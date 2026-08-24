@@ -901,25 +901,31 @@ def single_video(video_id):
 @app.route('/monetization')
 @verified_required
 def monetization():
-    conn = get_db(); c = conn.cursor()
+    conn = get_db()
+    c = conn.cursor()
     
-    # 1. Get this month earnings
+    # 1. Get this month earnings from creator_earnings table
     month = datetime.now().strftime('%Y-%m')
-    c.execute("SELECT SUM(earnings) as earnings FROM creator_earnings WHERE username=%s AND month=%s", (current_user.username, month))
+    c.execute("SELECT SUM(earnings) as earnings FROM creator_earnings WHERE username=%s AND month=%s", 
+              (current_user.username, month))
     stats = c.fetchone()
     total_earnings = round(stats['earnings'] if stats['earnings'] else 0, 2)
 
-    # 2. Get coin balance
+    # 2. Get coin balance from coins table
     c.execute("SELECT balance FROM coins WHERE username=%s", (current_user.username,))
     coins = c.fetchone()
     balance = coins['balance'] if coins else 0
 
-    # 3. Get pending withdrawals
-    c.execute("SELECT * FROM withdrawals WHERE username=%s ORDER BY timestamp DESC LIMIT 5", (current_user.username,))
+    # 3. Get last 5 withdrawals
+    c.execute("SELECT * FROM withdrawals WHERE username=%s ORDER BY timestamp DESC LIMIT 5", 
+              (current_user.username,))
     withdrawals = c.fetchall()
     
     conn.close()
-    return render_template('monetization.html', total_earnings=total_earnings, balance=balance, withdrawals=withdrawals)
+    return render_template('monetization.html', 
+                           total_earnings=total_earnings, 
+                           balance=balance, 
+                           withdrawals=withdrawals)
 
 # ===== COINS + WITHDRAW - DEMO MODE =====
 @app.route('/coins')
@@ -950,34 +956,51 @@ def buy_coins():
 @app.route('/withdraw', methods=['GET', 'POST'])
 @verified_required
 def withdraw():
+    conn = get_db()
+    c = conn.cursor()
+
     if request.method == 'POST':
         amount = float(request.form['amount'])
         method = request.form['method']
 
-        # ADDED: CHECK IF USER HAS ENOUGH COINS
-        user_coins = current_user.coin_balance # change this to your column name
-        if amount * 100 > user_coins: # assuming 100 coins = $1
+        # CHECK 1: Get actual coin balance
+        c.execute("SELECT balance FROM coins WHERE username=%s", (current_user.username,))
+        coins = c.fetchone()
+        user_coins = coins['balance'] if coins else 0
+        
+        # CHECK 2: 100 coins = $1. So user needs amount*100 coins
+        if amount * 100 > user_coins:
             flash(f'Insufficient coins. You have {user_coins} coins', 'error')
+            conn.close()
             return redirect('/withdraw')
 
+        # CHECK 3: Minimum $10
         if amount < 10:
             flash('Minimum withdrawal is $10', 'error')
+            conn.close()
             return redirect('/withdraw')
             
-        conn = get_db(); c = conn.cursor()
+        # INSERT WITHDRAWAL REQUEST
         c.execute("INSERT INTO withdrawals (username, amount_usd, method, bank_details, usdt_wallet, timestamp) VALUES (%s,%s,%s,%s,%s,%s)",
-                  (current_user.username, amount, method, request.form.get('bank'), request.form.get('usdt'), time.time()))
-        conn.commit(); conn.close()
+                  (current_user.username, 
+                   amount, 
+                   method, 
+                   request.form.get('bank'), 
+                   request.form.get('usdt'), 
+                   time.time()))
+        conn.commit()
+        conn.close()
         flash('Withdrawal request submitted! We will pay manually for now', 'success')
         return redirect('/withdraw')
     
-    # Get total earnings for display
-    conn = get_db(); c = conn.cursor()
+    # GET request: Show form + available earnings
     month = datetime.now().strftime('%Y-%m')
-    c.execute("SELECT SUM(earnings) as earnings FROM creator_earnings WHERE username=%s AND month=%s", (current_user.username, month))
+    c.execute("SELECT SUM(earnings) as earnings FROM creator_earnings WHERE username=%s AND month=%s", 
+              (current_user.username, month))
     stats = c.fetchone()
     total_earnings = round(stats['earnings'] if stats['earnings'] else 0, 2)
     conn.close()
+    
     return render_template('withdraw.html', total_earnings=total_earnings)
 # ===== END MONETIZATION ROUTES =====
 
