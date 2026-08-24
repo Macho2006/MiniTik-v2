@@ -84,7 +84,7 @@ from werkzeug.security import generate_password_hash
 
 # ===== SEED ADMIN USER - AUTO CREATE ON BOOT =====
 def create_admin_user():
-    admin_email = "macho@minitik.com"  # <-- CHANGE TO YOUR EMAIL
+    admin_email = "mocugo2006@gmail.com"  # <-- CHANGE TO YOUR EMAIL
     admin_password = "MachoDev@2026"   # <-- CHANGE TO STRONG PASSWORD
     admin_username = ADMIN_USERNAME    # <-- "MachoDev" from line 80
     
